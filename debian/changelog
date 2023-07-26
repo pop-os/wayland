@@ -1,3 +1,11 @@
+wayland (1.22.0-2) unstable; urgency=medium
+
+  * Upload to unstable
+  * debian/control: Add myself as uploader
+  * debian/control: Bump standard-version
+
+ -- Marius Gripsgard <mariogrip@debian.org>  Wed, 26 Jul 2023 02:43:38 +0200
+
 wayland (1.22.0-1) experimental; urgency=medium
 
   [ Guido Günther ]
