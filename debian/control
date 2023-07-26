@@ -3,7 +3,8 @@ Section: x11
 Priority: optional
 Maintainer: Debian X Strike Force <debian-x@lists.debian.org>
 Uploaders: Emilio Pozuelo Monfort <pochu@debian.org>,
-           Héctor Orón Martínez <zumbi@debian.org>
+           Héctor Orón Martínez <zumbi@debian.org>,
+           Marius Gripsgard <mariogrip@debian.org>
 Build-Depends:
  debhelper (>= 10),
  quilt,
