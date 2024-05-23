@@ -1,3 +1,9 @@
+wayland (1.22.0-2pop1) jammy; urgency=medium
+
+  * Backport to Jammy
+
+ -- Michael Aaron Murphy <michael@mmurphy.dev>  Thu, 23 May 2024 07:49:42 +0200
+
 wayland (1.22.0-2) unstable; urgency=medium
 
   * Upload to unstable
