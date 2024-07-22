@@ -47,6 +47,22 @@
 #define WL_SERVER_ID_START 0xff000000
 #define WL_MAP_MAX_OBJECTS 0x00f00000
 #define WL_CLOSURE_MAX_ARGS 20
+#define WL_BUFFER_DEFAULT_SIZE_POT 12
+#define WL_BUFFER_DEFAULT_MAX_SIZE (1 << WL_BUFFER_DEFAULT_SIZE_POT)
+
+/**
+ * Argument types used in signatures.
+ */
+enum wl_arg_type {
+	WL_ARG_INT = 'i',
+	WL_ARG_UINT = 'u',
+	WL_ARG_FIXED = 'f',
+	WL_ARG_STRING = 's',
+	WL_ARG_OBJECT = 'o',
+	WL_ARG_NEW_ID = 'n',
+	WL_ARG_ARRAY = 'a',
+	WL_ARG_FD = 'h',
+};
 
 struct wl_object {
 	const struct wl_interface *interface;
@@ -106,7 +122,7 @@ void
 wl_map_for_each(struct wl_map *map, wl_iterator_func_t func, void *data);
 
 struct wl_connection *
-wl_connection_create(int fd);
+wl_connection_create(int fd, size_t max_buffer_size);
 
 int
 wl_connection_destroy(struct wl_connection *connection);
@@ -149,7 +165,7 @@ struct wl_closure {
 };
 
 struct argument_details {
-	char type;
+	enum wl_arg_type type;
 	int nullable;
 };
 
@@ -213,7 +229,8 @@ wl_closure_queue(struct wl_closure *closure, struct wl_connection *connection);
 void
 wl_closure_print(struct wl_closure *closure,
 		 struct wl_object *target, int send, int discarded,
-		 uint32_t (*n_parse)(union wl_argument *arg));
+		 uint32_t (*n_parse)(union wl_argument *arg),
+		 const char *queue_name);
 
 void
 wl_closure_destroy(struct wl_closure *closure);
@@ -236,5 +253,9 @@ zalloc(size_t s)
 
 void
 wl_connection_close_fds_in(struct wl_connection *connection, int max);
+
+void
+wl_connection_set_max_buffer_size(struct wl_connection *connection,
+				  size_t max_buffer_size);
 
 #endif

@@ -312,9 +312,10 @@
       reserved to represent a null or non-existent object.
 
       For efficiency purposes, the IDs are densely packed in the sense that
-      the ID N will not be used until N-1 has been used.  Any ID allocation
-      algorithm that does not maintain this property is incompatible with
-      the implementation in libwayland.
+      the ID N will not be used until N-1 has been used. This ordering is
+      not merely a guideline, but a strict requirement, and there are
+      implementations of the protocol that rigorously enforce this rule,
+      including the ubiquitous libwayland.
     </para>
   </section>
   <section id="sect-Protocol-Compositor">

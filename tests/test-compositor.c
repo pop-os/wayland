@@ -103,26 +103,23 @@ handle_client_destroy(void *data)
 {
 	struct client_info *ci = data;
 	struct display *d;
-	siginfo_t status;
+	int status;
 
 	d = ci->display;
 
-	assert(waitid(P_PID, ci->pid, &status, WEXITED) != -1);
+	assert(waitpid(ci->pid, &status, 0) != -1);
 
-	switch (status.si_code) {
-	case CLD_KILLED:
-	case CLD_DUMPED:
+	if (WIFSIGNALED(status)) {
 		fprintf(stderr, "Client '%s' was killed by signal %d\n",
-			ci->name, status.si_status);
-		ci->kill_code = status.si_status;
-		break;
-	case CLD_EXITED:
-		if (status.si_status != EXIT_SUCCESS)
-			fprintf(stderr, "Client '%s' exited with code %d\n",
-				ci->name, status.si_status);
+			ci->name, WTERMSIG(status));
+		ci->kill_code = WTERMSIG(status);
 
-		ci->exit_code = status.si_status;
-		break;
+	} else if (WIFEXITED(status)) {
+		if (WEXITSTATUS(status) != EXIT_SUCCESS)
+			fprintf(stderr, "Client '%s' exited with code %d\n",
+				ci->name, WEXITSTATUS(status));
+
+		ci->exit_code = WEXITSTATUS(status);
 	}
 
 	++d->clients_terminated_no;

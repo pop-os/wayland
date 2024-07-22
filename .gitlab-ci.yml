@@ -37,15 +37,13 @@
 #   - documentation at https://freedesktop.pages.freedesktop.org/ci-templates/
 #   - repo at https://gitlab.freedesktop.org/freedesktop/ci-templates/
 
-# Here we use a fixed ref in order to isolate ourselves from ci-templates
-# API changes. If you need new features from ci-templates you must bump
-# this to the current SHA you require from the ci-templates repo, however
-# be aware that you may need to account for API changes when doing so.
-.templates_sha: &template_sha d5aa3941aa03c2f716595116354fb81eb8012acb # see https://docs.gitlab.com/ee/ci/yaml/#includefile
-
 include:
   - project: 'freedesktop/ci-templates'
-    ref: *template_sha
+    # Here we use a fixed ref in order to isolate ourselves from ci-templates
+    # API changes. If you need new features from ci-templates you must bump
+    # this to the current SHA you require from the ci-templates repo, however
+    # be aware that you may need to account for API changes when doing so.
+    ref: b791bd48996e3ced9ca13f1c5ee82be8540b8adb
     file:
       - '/templates/debian.yml'
       - '/templates/freebsd.yml'
@@ -72,12 +70,12 @@ stages:
 .os-debian:
   variables:
     BUILD_OS: debian
-    FDO_DISTRIBUTION_VERSION: bullseye
+    FDO_DISTRIBUTION_VERSION: bookworm
     FDO_DISTRIBUTION_PACKAGES: 'build-essential pkg-config libexpat1-dev libffi-dev libxml2-dev doxygen graphviz xmlto xsltproc docbook-xsl python3-pip python3-setuptools ninja-build'
-    FDO_DISTRIBUTION_EXEC: 'pip3 install meson==0.56.0'
+    FDO_DISTRIBUTION_EXEC: 'pip3 install --break-system-packages meson~=0.57.2'
     # bump this tag every time you change something which requires rebuilding the
     # base image
-    FDO_DISTRIBUTION_TAG: "2022-08-08.0"
+    FDO_DISTRIBUTION_TAG: "2024-03-28.2"
 
 .debian-x86_64:
   extends:
@@ -219,7 +217,7 @@ armv7-debian-container_prep:
   stage: "Build and test"
   script:
     - cd "$BUILDDIR"
-    - meson --prefix="$PREFIX" -Dicon_directory=/usr/share/X11/icons -Dwerror=true ${MESON_BUILD_TYPE} ..
+    - meson --prefix="$PREFIX" -Dicon_directory=/usr/share/X11/icons --fatal-meson-warnings -Dwerror=true ${MESON_BUILD_TYPE} ..
     - ninja -k0 -j${FDO_CI_CONCURRENT:-4}
     - meson test --num-processes ${FDO_CI_CONCURRENT:-4}
     - ninja clean
@@ -301,14 +299,14 @@ armv7-release-debian-build:
 .os-freebsd:
   variables:
     BUILD_OS: freebsd
-    FDO_DISTRIBUTION_VERSION: "13.1"
+    FDO_DISTRIBUTION_VERSION: "13.2"
     FDO_DISTRIBUTION_PACKAGES: 'libxslt meson ninja pkgconf expat libffi libepoll-shim libxml2'
     # bump this tag every time you change something which requires rebuilding the
     # base image
-    FDO_DISTRIBUTION_TAG: "2022-09-08.0"
+    FDO_DISTRIBUTION_TAG: "2023-08-02.0"
     # Don't build documentation since installing the required tools massively
     # increases the VM image (and therefore container) size.
-    MESON_ARGS: "-Ddocumentation=false"
+    MESON_ARGS: "--fatal-meson-warnings -Dwerror=true -Ddocumentation=false"
 
 .freebsd-x86_64:
   extends:

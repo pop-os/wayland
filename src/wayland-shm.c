@@ -310,6 +310,7 @@ shm_create_pool(struct wl_client *client, struct wl_resource *resource,
 	int seals;
 	int prot;
 	int flags;
+	uint32_t version;
 
 	if (size <= 0) {
 		wl_resource_post_error(resource,
@@ -358,8 +359,10 @@ shm_create_pool(struct wl_client *client, struct wl_resource *resource,
 #else
 	close(fd);
 #endif
+
+	version = wl_resource_get_version(resource);
 	pool->resource =
-		wl_resource_create(client, &wl_shm_pool_interface, 1, id);
+		wl_resource_create(client, &wl_shm_pool_interface, version, id);
 	if (!pool->resource) {
 		wl_client_post_no_memory(client);
 		munmap(pool->data, pool->size);
@@ -379,8 +382,15 @@ err_close:
 	close(fd);
 }
 
+static void
+shm_release(struct wl_client *client, struct wl_resource *resource)
+{
+	wl_resource_destroy(resource);
+}
+
 static const struct wl_shm_interface shm_interface = {
-	shm_create_pool
+	shm_create_pool,
+	shm_release,
 };
 
 static void
@@ -392,7 +402,7 @@ bind_shm(struct wl_client *client,
 	struct wl_array *additional_formats;
 	uint32_t *p;
 
-	resource = wl_resource_create(client, &wl_shm_interface, 1, id);
+	resource = wl_resource_create(client, &wl_shm_interface, version, id);
 	if (!resource) {
 		wl_client_post_no_memory(client);
 		return;
@@ -411,7 +421,7 @@ bind_shm(struct wl_client *client,
 WL_EXPORT int
 wl_display_init_shm(struct wl_display *display)
 {
-	if (!wl_global_create(display, &wl_shm_interface, 1, NULL, bind_shm))
+	if (!wl_global_create(display, &wl_shm_interface, 2, NULL, bind_shm))
 		return -1;
 
 	return 0;
