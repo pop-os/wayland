@@ -23,9 +23,12 @@ libwayland-server.so.0 libwayland-server0 #MINVER#
  wl_client_get_fd@Base 1.9.91
  wl_client_get_link@Base 1.11.91
  wl_client_get_object@Base 1.0.2
+ wl_client_get_user_data@Base 1.23.0
  wl_client_new_object@Base 1.0.2
  wl_client_post_implementation_error@Base 1.17.0
  wl_client_post_no_memory@Base 1.2.0
+ wl_client_set_max_buffer_size@Base 1.23.0
+ wl_client_set_user_data@Base 1.23.0
  wl_compositor_interface@Base 1.0.2
  wl_data_device_interface@Base 1.0.2
  wl_data_device_manager_interface@Base 1.0.2
@@ -52,6 +55,7 @@ libwayland-server.so.0 libwayland-server0 #MINVER#
  wl_display_next_serial@Base 1.0.2
  wl_display_remove_global@Base 1.0.2
  wl_display_run@Base 1.0.2
+ wl_display_set_default_max_buffer_size@Base 1.23.0
  wl_display_set_global_filter@Base 1.13.0
  wl_display_terminate@Base 1.0.2
  wl_event_loop_add_destroy_listener@Base 1.0.4
