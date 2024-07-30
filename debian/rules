@@ -21,6 +21,9 @@ endif
 %:
 	dh $@ --with quilt --builddirectory=build/ --buildsystem=meson
 
+override_dh_builddeb:
+	dh_builddeb -- -Zzstd -z3
+
 # For maintainer use only, generate a tarball:
 gentarball:
 	git archive --format=tar upstream-experimental --prefix=$(DEB_SOURCE)-$(DEB_VERSION_UPSTREAM)/ | gzip -9 > ../$(DEB_SOURCE)_$(DEB_VERSION_UPSTREAM).orig.tar.gz
