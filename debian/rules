@@ -39,6 +39,9 @@ override_dh_auto_test:
 %:
 	dh $@ --with quilt --builddirectory=build/ --buildsystem=meson
 
+override_dh_builddeb:
+	dh_builddeb -- -Zzstd -z3
+
 # For maintainer use only, generate a tarball:
 gentarball: UV=$(shell dpkg-parsechangelog|awk '/^Version:/ {print $$2}'|sed 's/-.*$$//')
 gentarball:
