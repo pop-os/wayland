@@ -921,10 +921,14 @@ wl_proxy_marshal_array_flags(struct wl_proxy *proxy, uint32_t opcode,
 
 	if (debug_client) {
 		struct wl_event_queue *queue;
+		const char *queue_name = NULL;
 
 		queue = wl_proxy_get_queue(proxy);
+		if (queue)
+			queue_name = wl_event_queue_get_name(queue);
+
 		wl_closure_print(closure, &proxy->object, true, false, NULL,
-				 wl_event_queue_get_name(queue));
+				 queue_name);
 	}
 
 	if (wl_closure_send(closure, proxy->display->connection)) {

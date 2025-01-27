@@ -2396,18 +2396,16 @@ enum wl_data_device_manager_dnd_action {
  */
 static inline bool
 wl_data_device_manager_dnd_action_is_valid(uint32_t value, uint32_t version) {
-	switch (value) {
-	case WL_DATA_DEVICE_MANAGER_DND_ACTION_NONE:
-		return version >= 1;
-	case WL_DATA_DEVICE_MANAGER_DND_ACTION_COPY:
-		return version >= 1;
-	case WL_DATA_DEVICE_MANAGER_DND_ACTION_MOVE:
-		return version >= 1;
-	case WL_DATA_DEVICE_MANAGER_DND_ACTION_ASK:
-		return version >= 1;
-	default:
-		return false;
-	}
+	uint32_t valid = 0;
+	if (version >= 1)
+		valid |= WL_DATA_DEVICE_MANAGER_DND_ACTION_NONE;
+	if (version >= 1)
+		valid |= WL_DATA_DEVICE_MANAGER_DND_ACTION_COPY;
+	if (version >= 1)
+		valid |= WL_DATA_DEVICE_MANAGER_DND_ACTION_MOVE;
+	if (version >= 1)
+		valid |= WL_DATA_DEVICE_MANAGER_DND_ACTION_ASK;
+	return (value & ~valid) == 0;
 }
 #endif /* WL_DATA_DEVICE_MANAGER_DND_ACTION_ENUM */
 
@@ -2560,28 +2558,26 @@ enum wl_shell_surface_resize {
  */
 static inline bool
 wl_shell_surface_resize_is_valid(uint32_t value, uint32_t version) {
-	switch (value) {
-	case WL_SHELL_SURFACE_RESIZE_NONE:
-		return version >= 1;
-	case WL_SHELL_SURFACE_RESIZE_TOP:
-		return version >= 1;
-	case WL_SHELL_SURFACE_RESIZE_BOTTOM:
-		return version >= 1;
-	case WL_SHELL_SURFACE_RESIZE_LEFT:
-		return version >= 1;
-	case WL_SHELL_SURFACE_RESIZE_TOP_LEFT:
-		return version >= 1;
-	case WL_SHELL_SURFACE_RESIZE_BOTTOM_LEFT:
-		return version >= 1;
-	case WL_SHELL_SURFACE_RESIZE_RIGHT:
-		return version >= 1;
-	case WL_SHELL_SURFACE_RESIZE_TOP_RIGHT:
-		return version >= 1;
-	case WL_SHELL_SURFACE_RESIZE_BOTTOM_RIGHT:
-		return version >= 1;
-	default:
-		return false;
-	}
+	uint32_t valid = 0;
+	if (version >= 1)
+		valid |= WL_SHELL_SURFACE_RESIZE_NONE;
+	if (version >= 1)
+		valid |= WL_SHELL_SURFACE_RESIZE_TOP;
+	if (version >= 1)
+		valid |= WL_SHELL_SURFACE_RESIZE_BOTTOM;
+	if (version >= 1)
+		valid |= WL_SHELL_SURFACE_RESIZE_LEFT;
+	if (version >= 1)
+		valid |= WL_SHELL_SURFACE_RESIZE_TOP_LEFT;
+	if (version >= 1)
+		valid |= WL_SHELL_SURFACE_RESIZE_BOTTOM_LEFT;
+	if (version >= 1)
+		valid |= WL_SHELL_SURFACE_RESIZE_RIGHT;
+	if (version >= 1)
+		valid |= WL_SHELL_SURFACE_RESIZE_TOP_RIGHT;
+	if (version >= 1)
+		valid |= WL_SHELL_SURFACE_RESIZE_BOTTOM_RIGHT;
+	return (value & ~valid) == 0;
 }
 #endif /* WL_SHELL_SURFACE_RESIZE_ENUM */
 
@@ -2609,12 +2605,10 @@ enum wl_shell_surface_transient {
  */
 static inline bool
 wl_shell_surface_transient_is_valid(uint32_t value, uint32_t version) {
-	switch (value) {
-	case WL_SHELL_SURFACE_TRANSIENT_INACTIVE:
-		return version >= 1;
-	default:
-		return false;
-	}
+	uint32_t valid = 0;
+	if (version >= 1)
+		valid |= WL_SHELL_SURFACE_TRANSIENT_INACTIVE;
+	return (value & ~valid) == 0;
 }
 #endif /* WL_SHELL_SURFACE_TRANSIENT_ENUM */
 
@@ -3486,16 +3480,14 @@ enum wl_seat_capability {
  */
 static inline bool
 wl_seat_capability_is_valid(uint32_t value, uint32_t version) {
-	switch (value) {
-	case WL_SEAT_CAPABILITY_POINTER:
-		return version >= 1;
-	case WL_SEAT_CAPABILITY_KEYBOARD:
-		return version >= 1;
-	case WL_SEAT_CAPABILITY_TOUCH:
-		return version >= 1;
-	default:
-		return false;
-	}
+	uint32_t valid = 0;
+	if (version >= 1)
+		valid |= WL_SEAT_CAPABILITY_POINTER;
+	if (version >= 1)
+		valid |= WL_SEAT_CAPABILITY_KEYBOARD;
+	if (version >= 1)
+		valid |= WL_SEAT_CAPABILITY_TOUCH;
+	return (value & ~valid) == 0;
 }
 #endif /* WL_SEAT_CAPABILITY_ENUM */
 
@@ -4567,14 +4559,12 @@ enum wl_output_mode {
  */
 static inline bool
 wl_output_mode_is_valid(uint32_t value, uint32_t version) {
-	switch (value) {
-	case WL_OUTPUT_MODE_CURRENT:
-		return version >= 1;
-	case WL_OUTPUT_MODE_PREFERRED:
-		return version >= 1;
-	default:
-		return false;
-	}
+	uint32_t valid = 0;
+	if (version >= 1)
+		valid |= WL_OUTPUT_MODE_CURRENT;
+	if (version >= 1)
+		valid |= WL_OUTPUT_MODE_PREFERRED;
+	return (value & ~valid) == 0;
 }
 #endif /* WL_OUTPUT_MODE_ENUM */
 

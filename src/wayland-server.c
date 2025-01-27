@@ -2483,9 +2483,10 @@ wl_priv_signal_final_emit(struct wl_priv_signal *signal, void *data)
 
 /** \cond */ /* Deprecated functions below. */
 
+WL_DEPRECATED
 uint32_t
 wl_client_add_resource(struct wl_client *client,
-		       struct wl_resource *resource) WL_DEPRECATED;
+		       struct wl_resource *resource);
 
 WL_EXPORT uint32_t
 wl_client_add_resource(struct wl_client *client,
@@ -2514,11 +2515,12 @@ wl_client_add_resource(struct wl_client *client,
 	return resource->object.id;
 }
 
+WL_DEPRECATED
 struct wl_resource *
 wl_client_add_object(struct wl_client *client,
 		     const struct wl_interface *interface,
 		     const void *implementation,
-		     uint32_t id, void *data) WL_DEPRECATED;
+		     uint32_t id, void *data);
 
 WL_EXPORT struct wl_resource *
 wl_client_add_object(struct wl_client *client,
@@ -2537,10 +2539,11 @@ wl_client_add_object(struct wl_client *client,
 	return resource;
 }
 
+WL_DEPRECATED
 struct wl_resource *
 wl_client_new_object(struct wl_client *client,
 		     const struct wl_interface *interface,
-		     const void *implementation, void *data) WL_DEPRECATED;
+		     const void *implementation, void *data);
 
 WL_EXPORT struct wl_resource *
 wl_client_new_object(struct wl_client *client,
@@ -2599,10 +2602,11 @@ wl_client_get_user_data(struct wl_client *client)
 	return client->data;
 }
 
+WL_DEPRECATED
 struct wl_global *
 wl_display_add_global(struct wl_display *display,
 		      const struct wl_interface *interface,
-		      void *data, wl_global_bind_func_t bind) WL_DEPRECATED;
+		      void *data, wl_global_bind_func_t bind);
 
 WL_EXPORT struct wl_global *
 wl_display_add_global(struct wl_display *display,
@@ -2612,9 +2616,10 @@ wl_display_add_global(struct wl_display *display,
 	return wl_global_create(display, interface, interface->version, data, bind);
 }
 
+WL_DEPRECATED
 void
 wl_display_remove_global(struct wl_display *display,
-			 struct wl_global *global) WL_DEPRECATED;
+			 struct wl_global *global);
 
 WL_EXPORT void
 wl_display_remove_global(struct wl_display *display, struct wl_global *global)
