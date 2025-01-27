@@ -1,9 +1,9 @@
-wayland (1.23.1-1) UNRELEASED; urgency=medium
+wayland (1.23.1-1) unstable; urgency=medium
 
   * Team upload.
   * New upstream release (Closes: #1094276, #1087438)
 
- -- Dylan Aïssi <daissi@debian.org>  Mon, 27 Jan 2025 21:48:20 +0100
+ -- Dylan Aïssi <daissi@debian.org>  Mon, 27 Jan 2025 22:06:33 +0100
 
 wayland (1.23.0-1) unstable; urgency=medium
 
