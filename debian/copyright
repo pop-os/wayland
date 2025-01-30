@@ -1,10 +1,7 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: wayland
 Upstream-Contact: Kristian Høgsberg <krh@bitplanet.net>
 Source: https://wayland.freedesktop.org/releases/
-
-Files: debian/*
-Copyright: © 2011 Cyril Brulebois <kibi@debian.org>
-License: X11
 
 Files: *
 Copyright:
@@ -24,6 +21,10 @@ Copyright:
  © 2016 Yong Bakos
  © 2017 NVIDIA CORPORATION
  © 2017 Samsung Electronics Co., Ltd
+License: X11
+
+Files: debian/*
+Copyright: © 2011 Cyril Brulebois <kibi@debian.org>
 License: X11
 
 License: X11
@@ -51,4 +52,3 @@ License: X11
  The above is the version of the MIT "Expat" License used by X.org:
  .
      http://cgit.freedesktop.org/xorg/xserver/tree/COPYING
-
