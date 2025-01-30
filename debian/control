@@ -34,8 +34,6 @@ Multi-Arch: same
 Depends:
  ${shlibs:Depends},
  ${misc:Depends},
-Conflicts: libwayland0 (<< 1.1.0-1)
-Replaces: libwayland0 (<< 1.1.0-1)
 Description: wayland compositor infrastructure - client library
  Wayland is a protocol for a compositor to talk to its clients as well
  as a C library implementation of that protocol. The compositor can be
@@ -55,9 +53,6 @@ Multi-Arch: same
 Depends:
  ${shlibs:Depends},
  ${misc:Depends},
-Breaks: libwayland-egl1-mesa (<< 18.0.5-0)
-Replaces: libwayland-egl1-mesa (<< 18.0.5-0)
-Provides: libwayland-egl1-mesa
 Description: wayland compositor infrastructure - EGL library
  Wayland is a protocol for a compositor to talk to its clients as well
  as a C library implementation of that protocol. The compositor can be
@@ -77,9 +72,6 @@ Multi-Arch: same
 Depends:
  ${shlibs:Depends},
  ${misc:Depends},
-Conflicts: libwayland0 (<< 1.1.0-1)
-Replaces: libwayland0 (<< 1.1.0-1)
-Breaks: weston (<< 1.2.0)
 Description: wayland compositor infrastructure - server library
  Wayland is a protocol for a compositor to talk to its clients as well
  as a C library implementation of that protocol. The compositor can be
@@ -99,8 +91,6 @@ Multi-Arch: same
 Depends:
  ${shlibs:Depends},
  ${misc:Depends},
-Conflicts: libwayland0 (<< 1.1.0-1)
-Replaces: libwayland0 (<< 1.1.0-1)
 Description: wayland compositor infrastructure - cursor library
  Wayland is a protocol for a compositor to talk to its clients as well
  as a C library implementation of that protocol. The compositor can be
@@ -124,8 +114,6 @@ Depends:
  libffi-dev,
  ${shlibs:Depends},
  ${misc:Depends},
-Breaks: libegl1-mesa-dev (<< 18.0.5-0),
-Replaces: libegl1-mesa-dev (<< 18.0.5-0),
 Multi-Arch: same
 Description: wayland compositor infrastructure - development files
  Wayland is a protocol for a compositor to talk to its clients as well
@@ -144,10 +132,6 @@ Architecture: any
 Depends:
  ${shlibs:Depends},
  ${misc:Depends},
-Breaks: libegl1-mesa-dev (<< 18.0.5-0),
- libwayland-dev (<< 1.15.0)
-Replaces: libegl1-mesa-dev (<< 18.0.5-0),
- libwayland-dev (<< 1.15.0)
 Multi-Arch: same
 Description: wayland compositor infrastructure - EGL backend development files
  Wayland is a protocol for a compositor to talk to its clients as well
@@ -165,8 +149,6 @@ Architecture: all
 Depends:
  ${misc:Depends},
 Multi-Arch: foreign
-Conflicts: libwayland-dev (<< 1.10.0-2)
-Replaces: libwayland-dev (<< 1.10.0-2)
 Description: wayland compositor infrastructure - documentation files
  Wayland is a protocol for a compositor to talk to its clients as well
  as a C library implementation of that protocol. The compositor can be
@@ -184,8 +166,6 @@ Architecture: any
 Depends:
  ${shlibs:Depends},
  ${misc:Depends},
-Conflicts: libwayland-dev (<< 1.11.0-1)
-Replaces: libwayland-dev (<< 1.11.0-1)
 Multi-Arch: foreign
 Description: wayland compositor infrastructure - binary utilities
  Wayland is a protocol for a compositor to talk to its clients as well
