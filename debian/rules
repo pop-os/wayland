@@ -10,11 +10,6 @@ endif
 override_dh_auto_configure:
 	dh_auto_configure -- $(configure_flags)
 
-# Kill *.la files, and forget no-one:
-override_dh_install:
-	find debian/tmp -name '*.la' -delete
-	dh_install
-
 override_dh_makeshlibs:
 	dh_makeshlibs -plibwayland-client0 \
 		-V 'libwayland-client0 (>= 1.2.0)' -- -c4
