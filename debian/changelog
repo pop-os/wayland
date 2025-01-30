@@ -33,7 +33,7 @@ wayland (1.22.0-1) experimental; urgency=medium
   * debian/libwayland-server0.symbols: refresh
 
   [ Marius Gripsgard ]
-  * debian/upstream: Update signing key to include key 
+  * debian/upstream: Update signing key to include key
     from the current upstream release developer
 
  -- Marius Gripsgard <marius@ubports.com>  Thu, 01 Jun 2023 19:54:23 +0200
