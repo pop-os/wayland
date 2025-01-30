@@ -6,7 +6,7 @@ Uploaders: Emilio Pozuelo Monfort <pochu@debian.org>,
            Héctor Orón Martínez <zumbi@debian.org>,
            Marius Gripsgard <mariogrip@debian.org>
 Build-Depends:
- debhelper (>= 10),
+ debhelper-compat (= 13),
  quilt,
  pkg-config,
  libexpat1-dev,
