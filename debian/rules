@@ -20,13 +20,6 @@ override_dh_makeshlibs:
 	dh_makeshlibs -plibwayland-server0 \
 		-V 'libwayland-server0 (>= 1.2.0)' -- -c4
 
-# Debug package:
-override_dh_strip:
-	dh_strip -plibwayland-client0 --dbgsym-migration='libwayland-client0 (<< 1.10.0-2)'
-	dh_strip -plibwayland-cursor0 --dbgsym-migration='libwayland-cursor0 (<< 1.10.0-2)'
-	dh_strip -plibwayland-server0 --dbgsym-migration='libwayland-server0 (<< 1.10.0-2)'
-	dh_strip -a --remaining-packages
-
 override_dh_auto_test:
 	# the test suite does not pass completely in headless mode
 	dh_auto_test || true
