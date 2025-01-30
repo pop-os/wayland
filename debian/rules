@@ -20,10 +20,6 @@ override_dh_makeshlibs:
 	dh_makeshlibs -plibwayland-server0 \
 		-V 'libwayland-server0 (>= 1.2.0)' -- -c4
 
-override_dh_auto_test:
-	# the test suite does not pass completely in headless mode
-	dh_auto_test || true
-
 %:
 	dh $@ --with quilt --builddirectory=build/ --buildsystem=meson
 
