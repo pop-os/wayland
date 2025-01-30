@@ -24,6 +24,7 @@ Standards-Version: 4.7.0
 Vcs-Git: https://salsa.debian.org/xorg-team/wayland/wayland.git
 Vcs-Browser: https://salsa.debian.org/xorg-team/wayland/wayland
 Homepage: https://wayland.freedesktop.org/
+Rules-Requires-Root: no
 
 Package: libwayland-client0
 Section: libs
