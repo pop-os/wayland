@@ -4,7 +4,8 @@ Priority: optional
 Maintainer: Debian X Strike Force <debian-x@lists.debian.org>
 Uploaders: Emilio Pozuelo Monfort <pochu@debian.org>,
            Héctor Orón Martínez <zumbi@debian.org>,
-           Marius Gripsgard <mariogrip@debian.org>
+           Marius Gripsgard <mariogrip@debian.org>,
+           Dylan Aïssi <daissi@debian.org>
 Build-Depends:
  debhelper-compat (= 13),
  quilt,
