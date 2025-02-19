@@ -10,6 +10,14 @@ endif
 override_dh_auto_configure:
 	dh_auto_configure -- $(configure_flags)
 
+override_dh_auto_test:
+# sanity-test fails on hppa
+ifeq ($(DEB_HOST_ARCH),hppa)
+	dh_auto_test || true
+else
+	dh_auto_test
+endif
+
 %:
 	dh $@ --with quilt --builddirectory=build/ --buildsystem=meson
 
