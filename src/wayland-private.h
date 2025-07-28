@@ -49,6 +49,9 @@
 #define WL_CLOSURE_MAX_ARGS 20
 #define WL_BUFFER_DEFAULT_SIZE_POT 12
 #define WL_BUFFER_DEFAULT_MAX_SIZE (1 << WL_BUFFER_DEFAULT_SIZE_POT)
+#if WL_BUFFER_DEFAULT_MAX_SIZE < WL_MAX_MESSAGE_SIZE
+# error default buffer cannot hold maximum-sized message
+#endif
 
 /**
  * Argument types used in signatures.

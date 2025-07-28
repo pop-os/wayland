@@ -507,7 +507,7 @@ static const struct wl_registry_listener registry_listener =
 	NULL
 };
 
-struct client *client_connect()
+struct client *client_connect(void)
 {
 	struct wl_registry *reg;
 	struct client *c = calloc(1, sizeof *c);

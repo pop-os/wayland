@@ -26,7 +26,6 @@
 
 #define _GNU_SOURCE
 
-#include <assert.h>
 #include <math.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -75,7 +74,8 @@ struct wl_connection {
 static inline size_t
 size_pot(uint32_t size_bits)
 {
-	assert(size_bits < 8 * sizeof(size_t));
+	if (!(size_bits < 8 * sizeof(size_t)))
+		wl_abort("Too many bits for size_t\n");
 
 	return ((size_t)1) << size_bits;
 }
@@ -260,7 +260,7 @@ ring_buffer_ensure_space(struct wl_ring_buffer *b, size_t count)
 	 * allowed).
 	 */
 	if (net_size > size_pot(size_bits)) {
-		wl_log("Data too big for buffer (%d + %zd > %zd).\n",
+		wl_log("Data too big for buffer (%zu + %zu > %zu).\n",
 		       ring_buffer_size(b), count, size_pot(size_bits));
 		errno = E2BIG;
 		return -1;
@@ -928,7 +928,7 @@ wl_connection_demarshal(struct wl_connection *connection,
 	for (i = 0; i < count; i++) {
 		signature = get_next_argument(signature, &arg);
 
-		if (arg.type != WL_ARG_FD && p + 1 > end) {
+		if (arg.type != WL_ARG_FD && p >= end) {
 			wl_log("message too short, "
 			       "object (%d), message %s(%s)\n",
 			       closure->sender_id, message->name,
@@ -975,9 +975,17 @@ wl_connection_demarshal(struct wl_connection *connection,
 
 			s = (char *) p;
 
-			if (length > 0 && s[length - 1] != '\0') {
+			if (s[length - 1] != '\0') {
 				wl_log("string not nul-terminated, "
 				       "message %s(%s)\n",
+				       message->name, message->signature);
+				errno = EINVAL;
+				goto err;
+			}
+
+			if (strlen(s) != length - 1) {
+				wl_log("string has embedded nul at offset %zu, "
+				       "message %s(%s)\n", strlen(s),
 				       message->name, message->signature);
 				errno = EINVAL;
 				goto err;
@@ -1221,6 +1229,11 @@ wl_closure_invoke(struct wl_closure *closure, uint32_t flags,
 		     count + 2, &ffi_type_void, ffi_types);
 
 	implementation = target->implementation;
+	if (!implementation) {
+		wl_abort("Implementation of resource %d of %s is NULL\n",
+			  target->id, target->interface->name);
+	}
+
 	if (!implementation[opcode]) {
 		wl_abort("listener function for opcode %u of %s is NULL\n",
 			 opcode, target->interface->name);
@@ -1343,7 +1356,7 @@ serialize_closure(struct wl_closure *closure, uint32_t *buffer,
 		if (arg.type == WL_ARG_FD)
 			continue;
 
-		if (p + 1 > end)
+		if (p >= end)
 			goto overflow;
 
 		switch (arg.type) {
@@ -1371,7 +1384,7 @@ serialize_closure(struct wl_closure *closure, uint32_t *buffer,
 			size = strlen(closure->args[i].s) + 1;
 			*p++ = size;
 
-			if (p + div_roundup(size, sizeof *p) > end)
+			if (div_roundup(size, sizeof *p) > (uint32_t)(end - p))
 				goto overflow;
 
 			memcpy(p, closure->args[i].s, size);
@@ -1386,7 +1399,7 @@ serialize_closure(struct wl_closure *closure, uint32_t *buffer,
 			size = closure->args[i].a->size;
 			*p++ = size;
 
-			if (p + div_roundup(size, sizeof *p) > end)
+			if (div_roundup(size, sizeof *p) > (uint32_t)(end - p))
 				goto overflow;
 
 			if (size != 0)

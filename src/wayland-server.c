@@ -37,7 +37,6 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <dlfcn.h>
-#include <assert.h>
 #include <sys/time.h>
 #include <fcntl.h>
 #include <sys/eventfd.h>
@@ -288,7 +287,16 @@ wl_resource_queue_event(struct wl_resource *resource, uint32_t opcode, ...)
 	wl_resource_queue_event_array(resource, opcode, args);
 }
 
-static void
+/** Post a protocol error
+ *
+ * \param resource The resource object
+ * \param code The error code
+ * \param msg The error message format string
+ * \param argp The format string argument list
+ *
+ * \memberof wl_resource
+ */
+WL_EXPORT void
 wl_resource_post_error_vargs(struct wl_resource *resource,
 			     uint32_t code, const char *msg, va_list argp)
 {
@@ -310,9 +318,17 @@ wl_resource_post_error_vargs(struct wl_resource *resource,
 	wl_resource_post_event(client->display_resource,
 			       WL_DISPLAY_ERROR, resource, code, buffer);
 	client->error = true;
-
 }
 
+/** Post a protocol error
+ *
+ * \param resource The resource object
+ * \param code The error code
+ * \param msg The error message format string
+ * \param ... The format string arguments
+ *
+ * \memberof wl_resource
+ */
 WL_EXPORT void
 wl_resource_post_error(struct wl_resource *resource,
 		       uint32_t code, const char *msg, ...)
@@ -381,6 +397,29 @@ wl_client_connection_data(int fd, uint32_t mask, void *data)
 		wl_connection_copy(connection, p, sizeof p);
 		opcode = p[1] & 0xffff;
 		size = p[1] >> 16;
+
+		/*
+		 * If the message is larger than the maximum size of the
+		 * connection buffer, the connection buffer will fill to
+		 * its max size and stay there, with no message ever
+		 * successfully being processed.  Since libwayland-server
+		 * uses level-triggered epoll, it will cause the server to
+		 * enter a loop that consumes CPU.  To avoid this,
+		 * immediately disconnect the client with a protocol
+		 * error.  Since the maximum size of a message should not
+		 * depend on the buffer size chosen by the compositor,
+		 * always compare the message size against the
+		 * limit enforced by libwayland 1.22 and below (4096),
+		 * rather than the actual value the compositor chose.
+		 */
+		if (size > WL_MAX_MESSAGE_SIZE) {
+			wl_resource_post_error(client->display_resource,
+			                       WL_DISPLAY_ERROR_INVALID_METHOD,
+			                       "message length %u exceeds %d",
+			                       size, WL_MAX_MESSAGE_SIZE);
+			break;
+		}
+
 		if (len < size)
 			break;
 
@@ -603,7 +642,7 @@ err_client:
  * \memberof wl_client
  */
 WL_EXPORT void
-wl_client_get_credentials(struct wl_client *client,
+wl_client_get_credentials(const struct wl_client *client,
 			  pid_t *pid, uid_t *uid, gid_t *gid)
 {
 	if (pid)
@@ -783,7 +822,7 @@ wl_resource_destroy(struct wl_resource *resource)
 }
 
 WL_EXPORT uint32_t
-wl_resource_get_id(struct wl_resource *resource)
+wl_resource_get_id(const struct wl_resource *resource)
 {
 	return resource->object.id;
 }
@@ -837,7 +876,7 @@ wl_resource_get_user_data(struct wl_resource *resource)
 }
 
 WL_EXPORT int
-wl_resource_get_version(struct wl_resource *resource)
+wl_resource_get_version(const struct wl_resource *resource)
 {
 	return resource->version;
 }
@@ -884,9 +923,23 @@ wl_resource_get_destroy_listener(struct wl_resource *resource,
  * \memberof wl_resource
  */
 WL_EXPORT const char *
-wl_resource_get_class(struct wl_resource *resource)
+wl_resource_get_class(const struct wl_resource *resource)
 {
 	return resource->object.interface->name;
+}
+
+/** Get the interface of a resource object
+ *
+ * \param resource The resource object
+ * \return The interface of the object associated with the resource
+ *
+ * \memberof wl_resource
+ * \since 1.24
+ */
+WL_EXPORT const struct wl_interface *
+wl_resource_get_interface(struct wl_resource *resource)
+{
+	return resource->object.interface;
 }
 
 /**
@@ -1480,7 +1533,7 @@ wl_global_set_user_data(struct wl_global *global, void *data)
  * \memberof wl_display
  */
 WL_EXPORT uint32_t
-wl_display_get_serial(struct wl_display *display)
+wl_display_get_serial(const struct wl_display *display)
 {
 	return display->serial;
 }
@@ -1517,7 +1570,8 @@ wl_display_terminate(struct wl_display *display)
 	display->run = false;
 
 	ret = write(display->terminate_efd, &terminate, sizeof(terminate));
-	assert (ret >= 0 || errno == EAGAIN);
+	if (ret < 0 && errno != EAGAIN)
+		wl_abort("Write failed at shutdown\n");
 }
 
 WL_EXPORT void
@@ -1714,7 +1768,8 @@ wl_socket_init_for_display_name(struct wl_socket *s, const char *name)
 	name_size = snprintf(s->addr.sun_path, sizeof s->addr.sun_path,
 			     "%s%s%s", runtime_dir, separator, name) + 1;
 
-	assert(name_size > 0);
+	if (!(name_size > 0))
+		wl_abort("Error assigning path name for socket address\n");
 	if (name_size > (int)sizeof s->addr.sun_path) {
 		wl_log("error: socket path \"%s%s%s\" plus null terminator"
 		       " exceeds 108 bytes\n", runtime_dir, separator, name);
@@ -2042,7 +2097,7 @@ wl_log_set_handler_server(wl_log_func_t handler)
  * \param func The function to call to log a new protocol message
  * \param user_data The user data pointer to pass to \a func
  *
- * \return The protol logger object on success, NULL on failure.
+ * \return The protocol logger object on success, NULL on failure.
  *
  * \sa wl_protocol_logger_destroy
  *

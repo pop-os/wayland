@@ -1383,6 +1383,11 @@ emit_validator(struct interface *interface, struct enumeration *e)
 {
 	struct entry *entry;
 
+	printf("#ifndef %s_%s_ENUM_IS_VALID\n",
+	       interface->uppercase_name, e->uppercase_name);
+	printf("#define %s_%s_ENUM_IS_VALID\n",
+	       interface->uppercase_name, e->uppercase_name);
+
 	printf("/**\n"
 	       " * @ingroup iface_%s\n"
 	       " * Validate a %s %s value.\n"
@@ -1420,6 +1425,9 @@ emit_validator(struct interface *interface, struct enumeration *e)
 		       "	}\n");
 	}
 	printf("}\n");
+
+	printf("#endif /* %s_%s_ENUM_IS_VALID */\n\n",
+	       interface->uppercase_name, e->uppercase_name);
 }
 
 static void
@@ -1483,11 +1491,11 @@ emit_enumerations(struct interface *interface, bool with_validators)
 
 		}
 
-		if (with_validators)
-			emit_validator(interface, e);
-
 		printf("#endif /* %s_%s_ENUM */\n\n",
 		       interface->uppercase_name, e->uppercase_name);
+
+		if (with_validators)
+			emit_validator(interface, e);
 	}
 }
 
