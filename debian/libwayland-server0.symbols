@@ -73,6 +73,7 @@ libwayland-server.so.0 libwayland-server0 #MINVER#
  wl_event_source_fd_update@Base 1.0.2
  wl_event_source_remove@Base 1.0.2
  wl_event_source_timer_update@Base 1.0.2
+ wl_fixes_interface@Base 1.24.0
  wl_global_create@Base 1.2.0
  wl_global_destroy@Base 1.2.0
  wl_global_get_display@Base 1.20.0
@@ -104,11 +105,13 @@ libwayland-server.so.0 libwayland-server0 #MINVER#
  wl_resource_get_client@Base 1.2.0
  wl_resource_get_destroy_listener@Base 1.2.0
  wl_resource_get_id@Base 1.2.0
+ wl_resource_get_interface@Base 1.24.0
  wl_resource_get_link@Base 1.2.0
  wl_resource_get_user_data@Base 1.2.0
  wl_resource_get_version@Base 1.2.0
  wl_resource_instance_of@Base 1.2.0
  wl_resource_post_error@Base 1.0.2
+ wl_resource_post_error_vargs@Base 1.24.0
  wl_resource_post_event@Base 1.0.2
  wl_resource_post_event_array@Base 1.3.0
  wl_resource_post_no_memory@Base 1.0.2
@@ -130,7 +133,9 @@ libwayland-server.so.0 libwayland-server0 #MINVER#
  wl_shm_buffer_get_height@Base 1.0.2
  wl_shm_buffer_get_stride@Base 1.0.2
  wl_shm_buffer_get_width@Base 1.0.2
+ wl_shm_buffer_ref@Base 1.24.0
  wl_shm_buffer_ref_pool@Base 1.9.91
+ wl_shm_buffer_unref@Base 1.24.0
  wl_shm_interface@Base 1.0.2
  wl_shm_pool_interface@Base 1.0.2
  wl_shm_pool_unref@Base 1.9.91

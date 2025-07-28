@@ -1,6 +1,7 @@
 wayland (1.24.0-1) UNRELEASED; urgency=medium
 
   * New upstream release (Closes: #1110019)
+  * Update symbols file
   * debian/watch: rely on gitlab releases instead of releases.html which
     tends to be outdated
 
