@@ -4,6 +4,7 @@ wayland (1.24.0-1) UNRELEASED; urgency=medium
   * Update symbols file
   * debian/watch: rely on gitlab releases instead of releases.html which
     tends to be outdated
+  * Standards-Version: 4.7.2 (no changes required)
 
  -- Dylan Aïssi <daissi@debian.org>  Mon, 28 Jul 2025 17:48:25 +0200
 
