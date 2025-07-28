@@ -924,7 +924,7 @@ TEST(versions)
 }
 
 static void
-check_error_on_destroyed_object(void *data)
+check_error_on_destroyed_object(void)
 {
 	struct client *c;
 	struct wl_seat *seat;
@@ -1043,7 +1043,7 @@ TEST(filtered_global_is_hidden)
 		      1, d, bind_data_offer);
 	wl_display_set_global_filter(d->wl_display, global_filter, NULL);
 
-	client_create_noarg(d, get_globals);
+	client_create(d, get_globals, NULL);
 	display_run(d);
 
 	wl_global_destroy(g);
@@ -1052,13 +1052,13 @@ TEST(filtered_global_is_hidden)
 }
 
 static void
-get_dynamic_globals(void *data)
+get_dynamic_globals(void)
 {
 	struct client *c = client_connect();
 	struct wl_registry *registry;
 
 	registry = wl_display_get_registry(c->wl_display);
-	wl_registry_add_listener(registry, &registry_listener_filtered, data);
+	wl_registry_add_listener(registry, &registry_listener_filtered, NULL);
 	wl_display_roundtrip(c->wl_display);
 
 	/* Wait for the server to create a new global */
@@ -1206,7 +1206,7 @@ static const struct wl_registry_listener zombie_fd_registry_listener = {
 };
 
 static void
-zombie_client(void *data)
+zombie_client(void)
 {
 	struct client *c = client_connect();
 	struct wl_registry *registry;
@@ -1376,7 +1376,7 @@ static const struct wl_registry_listener double_zombie_fd_registry_listener = {
 };
 
 static void
-double_zombie_client(void *data)
+double_zombie_client(void)
 {
 	struct client *c = client_connect();
 	struct wl_registry *registry;
@@ -1436,7 +1436,7 @@ static const struct wl_registry_listener bind_interface_mismatch_registry_listen
 };
 
 static void
-registry_bind_interface_mismatch_client(void *data)
+registry_bind_interface_mismatch_client(void)
 {
 	struct client *c = client_connect();
 	struct wl_registry *registry;
@@ -1598,7 +1598,7 @@ static const struct wl_registry_listener global_remove_before_registry_listener 
 };
 
 static void
-global_remove_before_client(void *data)
+global_remove_before_client(void)
 {
 	struct client *c = client_connect();
 	struct wl_registry *registry;
@@ -1648,7 +1648,7 @@ static const struct wl_registry_listener global_remove_after_registry_listener =
 };
 
 static void
-global_remove_after_client(void *data)
+global_remove_after_client(void)
 {
 	struct client *c = client_connect();
 	struct wl_registry *registry;

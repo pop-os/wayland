@@ -48,7 +48,7 @@ extern "C" {
 #endif
 
 /** Deprecated attribute */
-#if __STDC_VERSION__ >= 202311L
+#if (defined(__STDC_VERSION__) && __STDC_VERSION__ >= 202311L) || (defined(__cplusplus) && __cplusplus >= 201402L)
 #define WL_DEPRECATED [[deprecated]]
 #elif defined(__GNUC__) && __GNUC__ >= 4
 #define WL_DEPRECATED __attribute__ ((deprecated))
@@ -70,7 +70,7 @@ extern "C" {
 #define WL_PRINTF(x, y)
 #endif
 
-#if __STDC_VERSION__ >= 202311L
+#if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 202311L
 #define WL_TYPEOF(expr) typeof(expr)
 #else
 #define WL_TYPEOF(expr) __typeof__(expr)
@@ -89,6 +89,14 @@ extern "C" {
  *
  */
 struct wl_object;
+
+/**
+ * The maximum size of a protocol message.
+ *
+ * If a message size exceeds this value, the connection will be dropped.
+ * Servers will send an invalid_method error before disconnecting.
+ */
+#define WL_MAX_MESSAGE_SIZE 4096
 
 /**
  * Protocol message signature
@@ -635,7 +643,7 @@ wl_fixed_to_double(wl_fixed_t f)
 static inline wl_fixed_t
 wl_fixed_from_double(double d)
 {
-	return (wl_fixed_t) (d * 256.0);
+	return (wl_fixed_t) (round(d * 256.0));
 }
 
 /**

@@ -212,6 +212,7 @@ if get_option('libraries')
 		description: 'Server side implementation of the Wayland protocol',
 		version: meson.project_version(),
 		filebase: 'wayland-server',
+		libraries: mathlib_dep,
 		variables: [
 			'datarootdir=' + join_paths('${prefix}', get_option('datadir')),
 			'pkgdatadir=' + join_paths('${pc_sysrootdir}${datarootdir}', meson.project_name())
@@ -251,6 +252,7 @@ if get_option('libraries')
 		description: 'Wayland client side library',
 		version: meson.project_version(),
 		filebase: 'wayland-client',
+		libraries: mathlib_dep,
 		variables: [
 			'datarootdir=' + join_paths('${prefix}', get_option('datadir')),
 			'pkgdatadir=' + join_paths('${pc_sysrootdir}${datarootdir}', meson.project_name())

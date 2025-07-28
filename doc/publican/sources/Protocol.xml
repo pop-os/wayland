@@ -150,9 +150,10 @@
 	  <listitem>
 	    <para>
 	      Starts with an unsigned 32-bit length (including null terminator),
-	      followed by the string contents, including terminating null byte,
-	      then padding to a 32-bit boundary. A null value is represented
-	      with a length of 0.
+	      followed by the UTF-8 encoded string contents, including
+	      terminating null byte, then padding to a 32-bit boundary. A null
+	      value is represented with a length of 0. Interior null bytes are
+	      not permitted.
 	    </para>
 	  </listitem>
 	</varlistentry>

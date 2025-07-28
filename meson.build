@@ -1,6 +1,6 @@
 project(
 	'wayland', 'c',
-	version: '1.23.1',
+	version: '1.24.0',
 	license: 'MIT',
 	meson_version: '>= 0.57.0',
 	default_options: [

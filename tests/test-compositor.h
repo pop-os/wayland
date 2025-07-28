@@ -118,5 +118,17 @@ struct client_info *client_create_with_name(struct display *d,
 					    void *data,
 					    const char *name);
 #define client_create(d, c, data) client_create_with_name((d), (c), data, (#c))
+static inline void noarg_cb(void *data)
+{
+	void (*cb)(void) = data;
+	cb();
+}
+static inline struct client_info *client_create_with_name_noarg(struct display *d,
+								void (*client_main)(void),
+								const char *name)
+{
+	return client_create_with_name(d, noarg_cb, client_main, name);
+}
+
 #define client_create_noarg(d, c) \
-	client_create_with_name((d), (void(*)(void *)) (c), NULL, (#c))
+	client_create_with_name_noarg((d), (c), (#c))

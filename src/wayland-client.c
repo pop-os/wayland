@@ -37,7 +37,6 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <ctype.h>
-#include <assert.h>
 #include <fcntl.h>
 #include <poll.h>
 #include <pthread.h>
@@ -46,6 +45,7 @@
 #include "wayland-os.h"
 #include "wayland-client.h"
 #include "wayland-private.h"
+#include "timespec-util.h"
 
 /** \cond */
 
@@ -235,13 +235,16 @@ wl_event_queue_init(struct wl_event_queue *queue,
 static void
 wl_proxy_unref(struct wl_proxy *proxy)
 {
-	assert(proxy->refcount > 0);
+	if (!(proxy->refcount > 0))
+		wl_abort("Proxy requested for unref has no references\n");
 	if (--proxy->refcount > 0)
 		return;
 
 	/* If we get here, the client must have explicitly requested
 	 * deletion. */
-	assert(proxy->flags & WL_PROXY_FLAG_DESTROYED);
+	if (!(proxy->flags & WL_PROXY_FLAG_DESTROYED))
+		wl_abort("Proxy with no references not yet explicitly"
+			 "destroyed\n");
 	free(proxy);
 }
 
@@ -671,6 +674,9 @@ wl_proxy_add_listener(struct wl_proxy *proxy,
  * This function is useful in clients with multiple listeners on the same
  * interface to allow the identification of which code to execute.
  *
+ * If \ref wl_proxy_add_dispatcher was used, this function returns the
+ * dispatcher_data pointer instead.
+ *
  * \memberof wl_proxy
  */
 WL_EXPORT const void *
@@ -914,7 +920,9 @@ wl_proxy_marshal_array_flags(struct wl_proxy *proxy, uint32_t opcode,
 
 	closure = wl_closure_marshal(&proxy->object, opcode, args, message);
 	if (closure == NULL) {
-		wl_log("Error marshalling request: %s\n", strerror(errno));
+		wl_log("Error marshalling request for %s.%s: %s\n",
+		       proxy->object.interface->name, message->name,
+		       strerror(errno));
 		display_fatal_error(proxy->display, errno);
 		goto err_unlock;
 	}
@@ -932,7 +940,9 @@ wl_proxy_marshal_array_flags(struct wl_proxy *proxy, uint32_t opcode,
 	}
 
 	if (wl_closure_send(closure, proxy->display->connection)) {
-		wl_log("Error sending request: %s\n", strerror(errno));
+		wl_log("Error sending request for %s.%s: %s\n",
+		       proxy->object.interface->name, message->name,
+		       strerror(errno));
 		display_fatal_error(proxy->display, errno);
 	}
 
@@ -1176,7 +1186,8 @@ connect_to_socket(const char *name)
 			         "%s", name) + 1;
 	}
 
-	assert(name_size > 0);
+	if (!(name_size > 0))
+		wl_abort("Error assigning path name for socket connection\n");
 	if (name_size > (int)sizeof addr.sun_path) {
 		if (!path_is_absolute) {
 			wl_log("error: socket path \"%s/%s\" plus null terminator"
@@ -1553,6 +1564,28 @@ queue_event(struct wl_display *display, int len)
 	id = p[0];
 	opcode = p[1] & 0xffff;
 	size = p[1] >> 16;
+
+	/*
+	 * If the message is larger than the maximum size of the
+	 * connection buffer, the connection buffer will fill to
+	 * its max size and stay there, with no message ever
+	 * successfully being processed.  If the user of
+	 * libwayland-client uses a level-triggered event loop,
+	 * this will cause the client to enter a loop that
+	 * consumes CPU.  To avoid this, immediately drop the
+	 * connection.  Since the maximum size of a message should
+	 * not depend on the max buffer size chosen by the client,
+	 * always compare the message size against the
+	 * limit enforced by libwayland 1.22 and below (4096),
+	 * rather than the actual value the client chose.
+	 */
+	if (size > WL_MAX_MESSAGE_SIZE) {
+		wl_log("Message length %u exceeds limit %d\n",
+		       size, WL_MAX_MESSAGE_SIZE);
+		errno = E2BIG;
+		return -1;
+	}
+
 	if (len < size)
 		return 0;
 
@@ -1568,7 +1601,7 @@ queue_event(struct wl_display *display, int len)
 			clock_gettime(CLOCK_REALTIME, &tp);
 			time = (tp.tv_sec * 1000000L) + (tp.tv_nsec / 1000);
 
-			fprintf(stderr, "[%7u.%03u] discarded [%s]#%d.[event %d]"
+			fprintf(stderr, "[%7u.%03u] discarded [%s]#%u.[event %d]"
 				"(%d fd, %d byte)\n",
 				time / 1000, time % 1000,
 				zombie ? "zombie" : "unknown",
@@ -1946,18 +1979,140 @@ wl_display_cancel_read(struct wl_display *display)
 }
 
 static int
-wl_display_poll(struct wl_display *display, short int events)
+wl_display_poll(struct wl_display *display,
+		short int events,
+		const struct timespec *timeout)
 {
 	int ret;
 	struct pollfd pfd[1];
+	struct timespec now;
+	struct timespec deadline = {0};
+	struct timespec result;
+	struct timespec *remaining_timeout = NULL;
+
+	if (timeout) {
+		clock_gettime(CLOCK_MONOTONIC, &now);
+		timespec_add(&deadline, &now, timeout);
+	}
 
 	pfd[0].fd = display->fd;
 	pfd[0].events = events;
 	do {
-		ret = poll(pfd, 1, -1);
+		if (timeout) {
+			clock_gettime(CLOCK_MONOTONIC, &now);
+			timespec_sub_saturate(&result, &deadline, &now);
+			remaining_timeout = &result;
+		}
+		ret = ppoll(pfd, 1, remaining_timeout, NULL);
 	} while (ret == -1 && errno == EINTR);
 
 	return ret;
+}
+
+/** Dispatch events in an event queue with a timeout
+ *
+ * \param display The display context object
+ * \param queue The event queue to dispatch
+ * \param timeout A timeout describing how long the call should block trying to
+ * dispatch events
+ * \return The number of dispatched events on success, -1 on failure
+ *
+ * This function behaves identical to wl_display_dispatch_queue() except
+ * that it also takes a timeout and returns 0 if the timeout elapsed.
+ *
+ * Passing NULL as a timeout means an infinite timeout. An empty timespec
+ * causes wl_display_dispatch_queue_timeout() to return immediately even if no
+ * events have been dispatched.
+ *
+ * If a timeout is passed to wl_display_dispatch_queue_timeout() it is updated
+ * to the remaining time.
+ *
+ * \sa wl_display_dispatch_queue()
+ *
+ * \memberof wl_display
+ */
+WL_EXPORT int
+wl_display_dispatch_queue_timeout(struct wl_display *display,
+				  struct wl_event_queue *queue,
+				  const struct timespec *timeout)
+{
+	int ret;
+	struct timespec now;
+	struct timespec deadline = {0};
+	struct timespec result;
+	struct timespec *remaining_timeout = NULL;
+
+	if (timeout) {
+		clock_gettime(CLOCK_MONOTONIC, &now);
+		timespec_add(&deadline, &now, timeout);
+	}
+
+	if (wl_display_prepare_read_queue(display, queue) == -1)
+		return wl_display_dispatch_queue_pending(display, queue);
+
+	while (true) {
+		ret = wl_display_flush(display);
+
+		if (ret != -1 || errno != EAGAIN)
+			break;
+
+		if (timeout) {
+			clock_gettime(CLOCK_MONOTONIC, &now);
+			timespec_sub_saturate(&result, &deadline, &now);
+			remaining_timeout = &result;
+		}
+		ret = wl_display_poll(display, POLLOUT, remaining_timeout);
+
+		if (ret <= 0) {
+			wl_display_cancel_read(display);
+			return ret;
+		}
+	}
+
+	/* Don't stop if flushing hits an EPIPE; continue so we can read any
+	 * protocol error that may have triggered it. */
+	if (ret < 0 && errno != EPIPE) {
+		wl_display_cancel_read(display);
+		return -1;
+	}
+
+	while (true) {
+		if (timeout) {
+			clock_gettime(CLOCK_MONOTONIC, &now);
+			timespec_sub_saturate(&result, &deadline, &now);
+			remaining_timeout = &result;
+		}
+
+		ret = wl_display_poll(display, POLLIN, remaining_timeout);
+		if (ret <= 0) {
+			wl_display_cancel_read(display);
+			break;
+		}
+
+		ret = wl_display_read_events(display);
+		if (ret == -1)
+			break;
+
+		ret = wl_display_dispatch_queue_pending(display, queue);
+		if (ret != 0)
+			break;
+
+		/* We managed to read data from the display but there is no
+		 * complete event to dispatch yet. Try reading again. */
+		if (wl_display_prepare_read_queue(display, queue) == -1)
+			return wl_display_dispatch_queue_pending(display, queue);
+	}
+
+	return ret;
+}
+
+WL_EXPORT int
+wl_display_dispatch_timeout(struct wl_display *display,
+			    const struct timespec *timeout)
+{
+	return wl_display_dispatch_queue_timeout(display,
+						 &display->default_queue,
+						 timeout);
 }
 
 /** Dispatch events in an event queue
@@ -1991,8 +2146,8 @@ wl_display_poll(struct wl_display *display, short int events)
  * \note Since Wayland 1.5 the display has an extra queue
  * for its own events (i. e. delete_id). This queue is dispatched always,
  * no matter what queue we passed as an argument to this function.
- * That means that this function can return non-0 value even when it
- * haven't dispatched any event for the given queue.
+ * That means that this function can return even when it has not dispatched any
+ * event for the given queue.
  *
  * \sa wl_display_dispatch(), wl_display_dispatch_pending(),
  * wl_display_dispatch_queue_pending(), wl_display_prepare_read_queue()
@@ -2005,37 +2160,10 @@ wl_display_dispatch_queue(struct wl_display *display,
 {
 	int ret;
 
-	if (wl_display_prepare_read_queue(display, queue) == -1)
-		return wl_display_dispatch_queue_pending(display, queue);
+	ret = wl_display_dispatch_queue_timeout(display, queue, NULL);
+	assert(ret == -1 || ret > 0);
 
-	while (true) {
-		ret = wl_display_flush(display);
-
-		if (ret != -1 || errno != EAGAIN)
-			break;
-
-		if (wl_display_poll(display, POLLOUT) == -1) {
-			wl_display_cancel_read(display);
-			return -1;
-		}
-	}
-
-	/* Don't stop if flushing hits an EPIPE; continue so we can read any
-	 * protocol error that may have triggered it. */
-	if (ret < 0 && errno != EPIPE) {
-		wl_display_cancel_read(display);
-		return -1;
-	}
-
-	if (wl_display_poll(display, POLLIN) == -1) {
-		wl_display_cancel_read(display);
-		return -1;
-	}
-
-	if (wl_display_read_events(display) == -1)
-		return -1;
-
-	return wl_display_dispatch_queue_pending(display, queue);
+	return ret;
 }
 
 /** Dispatch pending events in an event queue
@@ -2407,6 +2535,20 @@ wl_proxy_get_class(struct wl_proxy *proxy)
 	return proxy->object.interface->name;
 }
 
+/** Get the interface of a proxy object
+ *
+ * \param proxy The proxy object
+ * \return The interface of the object associated with the proxy
+ *
+ * \memberof wl_proxy
+ * \since 1.24
+ */
+WL_EXPORT const struct wl_interface *
+wl_proxy_get_interface(struct wl_proxy *proxy)
+{
+	return proxy->object.interface;
+}
+
 /** Get the display of a proxy object
  *
  * \param proxy The proxy object
@@ -2457,7 +2599,9 @@ wl_proxy_set_queue(struct wl_proxy *proxy, struct wl_event_queue *queue)
 	wl_list_remove(&proxy->queue_link);
 
 	if (queue) {
-		assert(proxy->display == queue->display);
+		if (!(proxy->display == queue->display))
+			wl_abort("Proxy and queue point to different "
+				 "wl_displays");
 		proxy->queue = queue;
 	} else {
 		proxy->queue = &proxy->display->default_queue;
@@ -2585,7 +2729,8 @@ wl_proxy_wrapper_destroy(void *proxy_wrapper)
 		wl_abort("Tried to destroy non-wrapper proxy with "
 			 "wl_proxy_wrapper_destroy\n");
 
-	assert(wrapper->refcount == 1);
+	if (!(wrapper->refcount == 1))
+		wl_abort("Expected proxy wrapper's refcount to be 1\n");
 
 	pthread_mutex_lock(&wrapper->display->mutex);
 

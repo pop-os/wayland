@@ -43,7 +43,7 @@ include:
     # API changes. If you need new features from ci-templates you must bump
     # this to the current SHA you require from the ci-templates repo, however
     # be aware that you may need to account for API changes when doing so.
-    ref: b791bd48996e3ced9ca13f1c5ee82be8540b8adb
+    ref: f210ea84576f756816da37908771edcee14ef7e6
     file:
       - '/templates/debian.yml'
       - '/templates/freebsd.yml'
@@ -62,6 +62,13 @@ stages:
   - "Build and test"
   - "Other build configurations"
 
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS
+      when: never
+    - if: $CI_COMMIT_BRANCH
+
 .ci-rules:
   rules:
     - when: on_success
@@ -75,7 +82,7 @@ stages:
     FDO_DISTRIBUTION_EXEC: 'pip3 install --break-system-packages meson~=0.57.2'
     # bump this tag every time you change something which requires rebuilding the
     # base image
-    FDO_DISTRIBUTION_TAG: "2024-03-28.2"
+    FDO_DISTRIBUTION_TAG: "2025-01-21.1"
 
 .debian-x86_64:
   extends:
@@ -94,6 +101,7 @@ stages:
     - .os-debian
   variables:
     BUILD_ARCH: "armv7"
+    FDO_DISTRIBUTION_PLATFORM: "linux/arm/v7"
 
 
 # Does not inherit .ci-rules as we only want it to run in MR context.
@@ -147,7 +155,6 @@ armv7-debian-container_prep:
   stage: "Base container"
   variables:
     GIT_STRATEGY: none
-    FDO_BASE_IMAGE: "arm32v7/debian:$FDO_DISTRIBUTION_VERSION"
 
 
 # Core build environment.
