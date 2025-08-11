@@ -1,3 +1,9 @@
+wayland (1.24.0-2) unstable; urgency=medium
+
+  * Upload to unstable.
+
+ -- Dylan Aïssi <daissi@debian.org>  Mon, 11 Aug 2025 18:22:58 +0200
+
 wayland (1.24.0-1) experimental; urgency=medium
 
   * New upstream release (Closes: #1110019)
