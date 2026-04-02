@@ -19,8 +19,10 @@ libwayland-client.so.0 libwayland-client0 #MINVER#
  wl_display_disconnect@Base 1.0.2
  wl_display_dispatch@Base 1.0.2
  wl_display_dispatch_pending@Base 1.0.2
+ wl_display_dispatch_pending_single@Base 1.25.0
  wl_display_dispatch_queue@Base 1.0.2
  wl_display_dispatch_queue_pending@Base 1.0.2
+ wl_display_dispatch_queue_pending_single@Base 1.25.0
  wl_display_dispatch_queue_timeout@Base 1.24.0
  wl_display_dispatch_timeout@Base 1.24.0
  wl_display_flush@Base 1.0.2
