@@ -66,7 +66,6 @@ if get_option('scanner')
 		variables: [
 			'datarootdir=' + join_paths('${prefix}', get_option('datadir')),
 			'pkgdatadir=' + join_paths('${pc_sysrootdir}${datarootdir}', meson.project_name()),
-			'bindir=' + join_paths('${prefix}', get_option('bindir')),
 			'wayland_scanner=${bindir}/wayland-scanner'
 		],
 		filebase: 'wayland-scanner'

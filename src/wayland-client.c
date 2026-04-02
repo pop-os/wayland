@@ -115,6 +115,7 @@ struct wl_display {
 /** \endcond */
 
 static int debug_client = 0;
+static int debug_color = 0;
 
 /**
  * This helper function wakes up all threads that are
@@ -498,7 +499,10 @@ proxy_create(struct wl_proxy *factory, const struct wl_interface *interface,
 		return NULL;
 	}
 
-	wl_list_insert(&proxy->queue->proxy_list, &proxy->queue_link);
+	if (proxy->queue != NULL)
+		wl_list_insert(&proxy->queue->proxy_list, &proxy->queue_link);
+	else
+		wl_list_init(&proxy->queue_link);
 
 	return proxy;
 }
@@ -559,7 +563,10 @@ wl_proxy_create_for_id(struct wl_proxy *factory,
 		return NULL;
 	}
 
-	wl_list_insert(&proxy->queue->proxy_list, &proxy->queue_link);
+	if (proxy->queue != NULL)
+		wl_list_insert(&proxy->queue->proxy_list, &proxy->queue_link);
+	else
+		wl_list_init(&proxy->queue_link);
 
 	return proxy;
 }
@@ -936,7 +943,7 @@ wl_proxy_marshal_array_flags(struct wl_proxy *proxy, uint32_t opcode,
 			queue_name = wl_event_queue_get_name(queue);
 
 		wl_closure_print(closure, &proxy->object, true, false, NULL,
-				 queue_name);
+				 queue_name, debug_color);
 	}
 
 	if (wl_closure_send(closure, proxy->display->connection)) {
@@ -1229,10 +1236,23 @@ wl_display_connect_to_fd(int fd)
 {
 	struct wl_display *display;
 	const char *debug;
+	const char *no_color;
+	const char *force_color;
 
+	no_color = getenv("NO_COLOR");
+	force_color = getenv("FORCE_COLOR");
 	debug = getenv("WAYLAND_DEBUG");
-	if (debug && (strstr(debug, "client") || strstr(debug, "1")))
+	if (debug && (wl_check_env_token(debug, "client") || wl_check_env_token(debug, "1"))) {
 		debug_client = 1;
+		if (isatty(fileno(stderr)))
+			debug_color = 1;
+	}
+
+	if (force_color && force_color[0] != '\0')
+		debug_color = 1;
+
+	if (no_color && no_color[0] != '\0')
+		debug_color = 0;
 
 	display = zalloc(sizeof *display);
 	if (display == NULL) {
@@ -1600,12 +1620,16 @@ queue_event(struct wl_display *display, int len)
 		if (debug_client) {
 			clock_gettime(CLOCK_REALTIME, &tp);
 			time = (tp.tv_sec * 1000000L) + (tp.tv_nsec / 1000);
-
-			fprintf(stderr, "[%7u.%03u] discarded [%s]#%u.[event %d]"
+			fprintf(stderr, "%s[%7u.%03u] %sdiscarded %s[%s]%s#%u%s.[event %d]%s"
 				"(%d fd, %d byte)\n",
+				debug_color ? WL_DEBUG_COLOR_GREEN : "",
 				time / 1000, time % 1000,
+				debug_color ? WL_DEBUG_COLOR_RED : "",
+				debug_color ? WL_DEBUG_COLOR_BLUE : "",
 				zombie ? "zombie" : "unknown",
-				id, opcode,
+				debug_color ? WL_DEBUG_COLOR_MAGENTA : "", id,
+				debug_color ? WL_DEBUG_COLOR_BLUE : "", opcode,
+				debug_color ? WL_DEBUG_COLOR_RESET : "",
 				num_zombie_fds, size);
 		}
 		if (num_zombie_fds > 0)
@@ -1690,7 +1714,7 @@ dispatch_event(struct wl_display *display, struct wl_event_queue *queue)
 				 !(proxy->dispatcher || proxy->object.implementation);
 
 		wl_closure_print(closure, &proxy->object, false, discarded,
-				 id_from_object, queue->name);
+				 id_from_object, queue->name, debug_color);
 	}
 
 	if (proxy_destroyed) {
@@ -1857,6 +1881,34 @@ dispatch_queue(struct wl_display *display, struct wl_event_queue *queue)
 	}
 
 	return count;
+
+err:
+	errno = display->last_error;
+
+	return -1;
+}
+
+
+static int
+dispatch_queue_single(struct wl_display *display, struct wl_event_queue *queue)
+{
+	if (display->last_error)
+		goto err;
+
+	while (!wl_list_empty(&display->display_queue.event_list)) {
+		dispatch_event(display, &display->display_queue);
+		if (display->last_error)
+			goto err;
+	}
+
+	if (!wl_list_empty(&queue->event_list)) {
+		dispatch_event(display, queue);
+		if (display->last_error)
+			goto err;
+		return 1;
+	} else {
+		return 0;
+	}
 
 err:
 	errno = display->last_error;
@@ -2194,6 +2246,34 @@ wl_display_dispatch_queue_pending(struct wl_display *display,
 	return ret;
 }
 
+/** Dispatch at most one pending event in an event queue
+ *
+ * \param display The display context object
+ * \param queue The event queue to dispatch
+ * \return The number of dispatched events (0 or 1) on success or -1 on failure
+ *
+ * Dispatch at most one pending event for objects assigned to the given
+ * event queue. On failure -1 is returned and errno set appropriately.
+ * If there are no events queued, this function returns immediately.
+ *
+ * \memberof wl_display
+ * \since 1.25.0
+ */
+WL_EXPORT int
+wl_display_dispatch_queue_pending_single(struct wl_display *display,
+					 struct wl_event_queue *queue)
+{
+	int ret;
+
+	pthread_mutex_lock(&display->mutex);
+
+	ret = dispatch_queue_single(display, queue);
+
+	pthread_mutex_unlock(&display->mutex);
+
+	return ret;
+}
+
 /** Process incoming events
  *
  * \param display The display context object
@@ -2252,6 +2332,25 @@ wl_display_dispatch_pending(struct wl_display *display)
 {
 	return wl_display_dispatch_queue_pending(display,
 						 &display->default_queue);
+}
+
+/** Dispatch at most one pending event in the default event queue.
+ *
+ * \param display The display context object
+ * \return The number of dispatched events (0 or 1) on success or -1 on failure
+ *
+ * Dispatch at most one pending event for objects assigned to the default
+ * event queue. On failure -1 is returned and errno set appropriately.
+ * If there are no events queued, this function returns immediately.
+ *
+ * \memberof wl_display
+ * \since 1.25.0
+ */
+WL_EXPORT int
+wl_display_dispatch_pending_single(struct wl_display *display)
+{
+	return wl_display_dispatch_queue_pending_single(display,
+			                             &display->default_queue);
 }
 
 /** Retrieve the last error that occurred on a display
@@ -2708,7 +2807,10 @@ wl_proxy_create_wrapper(void *proxy)
 	wrapper->flags = WL_PROXY_FLAG_WRAPPER;
 	wrapper->refcount = 1;
 
-	wl_list_insert(&wrapper->queue->proxy_list, &wrapper->queue_link);
+	if (wrapper->queue != NULL)
+		wl_list_insert(&wrapper->queue->proxy_list, &wrapper->queue_link);
+	else
+		wl_list_init(&wrapper->queue_link);
 
 	pthread_mutex_unlock(&wrapped_proxy->display->mutex);
 

@@ -736,6 +736,7 @@ start_element(void *data, const char *element_name, const char **atts)
 	const char *allow_null = NULL;
 	const char *enumeration_name = NULL;
 	const char *bitfield = NULL;
+	const char *frozen = NULL;
 	int i, version = 0;
 
 	ctx->loc.line_number = XML_GetCurrentLineNumber(ctx->parser);
@@ -765,6 +766,8 @@ start_element(void *data, const char *element_name, const char **atts)
 			enumeration_name = atts[i + 1];
 		if (strcmp(atts[i], "bitfield") == 0)
 			bitfield = atts[i + 1];
+		if (strcmp(atts[i], "frozen") == 0)
+			frozen = atts[i + 1];
 	}
 
 	ctx->character_data_length = 0;
@@ -783,6 +786,20 @@ start_element(void *data, const char *element_name, const char **atts)
 
 		if (version == 0)
 			fail(&ctx->loc, "no interface version given");
+
+		if (frozen) {
+			if (strcmp(frozen, "true") == 0) {
+				if (version != 1) {
+					fail(&ctx->loc,
+					     "frozen interface must have version 1");
+				}
+			} else if (strcmp(frozen, "false") != 0) {
+				fail(&ctx->loc,
+				     "invalid value (%s) frozen attribute "
+				     "(only true/false are accepted)",
+				     frozen);
+			}
+		}
 
 		validate_identifier(&ctx->loc, name, STANDALONE_IDENT);
 		interface = create_interface(ctx->loc, name, version);

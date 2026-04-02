@@ -398,7 +398,7 @@ wl_cursor_theme_load(const char *name, int size, struct wl_shm *shm)
 		return NULL;
 
 	if (size < 0 || (size > 0 && INT_MAX / size / 4 < size))
-		return NULL;
+		goto err;
 
 	if (!name)
 		name = "default";
@@ -409,7 +409,7 @@ wl_cursor_theme_load(const char *name, int size, struct wl_shm *shm)
 
 	theme->pool = shm_pool_create(shm, size * size * 4);
 	if (!theme->pool)
-		goto out_error_pool;
+		goto err;
 
 	xcursor_load_theme(name, size, load_callback, theme);
 
@@ -421,7 +421,7 @@ wl_cursor_theme_load(const char *name, int size, struct wl_shm *shm)
 
 	return theme;
 
-out_error_pool:
+err:
 	free(theme);
 	return NULL;
 }

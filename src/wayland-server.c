@@ -149,6 +149,7 @@ struct wl_protocol_logger {
 };
 
 static int debug_server = 0;
+static int debug_color = 0;
 
 static void
 log_closure(struct wl_resource *resource,
@@ -160,7 +161,7 @@ log_closure(struct wl_resource *resource,
 	struct wl_protocol_logger_message message;
 
 	if (debug_server)
-		wl_closure_print(closure, object, send, false, NULL, NULL);
+		wl_closure_print(closure, object, send, false, NULL, NULL, debug_color);
 
 	if (!wl_list_empty(&display->protocol_loggers)) {
 		message.resource = resource;
@@ -449,11 +450,11 @@ wl_client_connection_data(int fd, uint32_t mask, void *data)
 		    resource->version > 0 && resource->version < since) {
 			wl_resource_post_error(client->display_resource,
 					       WL_DISPLAY_ERROR_INVALID_METHOD,
-					       "invalid method %d (since %d < %d)"
-					       ", object %s#%u",
-					       opcode, resource->version, since,
+					       "invalid version for %s#%u.%s (%d, need at least %d)",
 					       object->interface->name,
-					       object->id);
+					       object->id,
+					       message->name,
+					       resource->version, since);
 			break;
 		}
 
@@ -1053,30 +1054,25 @@ registry_bind(struct wl_client *client,
 		if (global->name == name)
 			break;
 
-	if (&global->link == &display->global_list)
+	if (&global->link == &display->global_list || !wl_global_is_visible(client, global))
 		wl_resource_post_error(resource,
 				       WL_DISPLAY_ERROR_INVALID_OBJECT,
-				       "invalid global %s (%d)", interface, name);
+				       "global %s (%"PRIu32") is unavailable", interface, name);
 	else if (strcmp(global->interface->name, interface) != 0)
 		wl_resource_post_error(resource,
 				       WL_DISPLAY_ERROR_INVALID_OBJECT,
-				       "invalid interface for global %u: "
-				       "have %s, wanted %s",
-				       name, interface, global->interface->name);
+				       "invalid interface for global %"PRIu32": expected %s, got %s",
+				       name, global->interface->name, interface);
 	else if (version == 0)
 		wl_resource_post_error(resource,
 				       WL_DISPLAY_ERROR_INVALID_OBJECT,
-				       "invalid version for global %s (%d): 0 is not a valid version",
+				       "invalid version for global %s (%"PRIu32"): 0 is not a valid version",
 				       interface, name);
 	else if (global->version < version)
 		wl_resource_post_error(resource,
 				       WL_DISPLAY_ERROR_INVALID_OBJECT,
-				       "invalid version for global %s (%d): have %d, wanted %d",
+				       "invalid version for global %s (%"PRIu32"): expected at most %d, got %d",
 				       interface, name, global->version, version);
-	else if (!wl_global_is_visible(client, global))
-		wl_resource_post_error(resource,
-				       WL_DISPLAY_ERROR_INVALID_OBJECT,
-				       "invalid global %s (%d)", interface, name);
 	else
 		global->bind(client, global->data, version, id);
 }
@@ -1191,10 +1187,23 @@ wl_display_create(void)
 {
 	struct wl_display *display;
 	const char *debug;
+	const char *no_color;
+	const char *force_color;
 
+	no_color = getenv("NO_COLOR");
+	force_color = getenv("FORCE_COLOR");
 	debug = getenv("WAYLAND_DEBUG");
-	if (debug && (strstr(debug, "server") || strstr(debug, "1")))
+	if (debug && (wl_check_env_token(debug, "server") || wl_check_env_token(debug, "1"))) {
 		debug_server = 1;
+		if (isatty(fileno(stderr)))
+			debug_color = 1;
+	}
+
+	if (force_color && force_color[0] != '\0')
+		debug_color = 1;
+
+	if (no_color && no_color[0] != '\0')
+		debug_color = 0;
 
 	display = zalloc(sizeof *display);
 	if (display == NULL)
@@ -1817,6 +1826,24 @@ _wl_display_add_socket(struct wl_display *display, struct wl_socket *s)
 	return 0;
 }
 
+
+/** Automatically pick a Wayland display socket for the clients to connect to.
+ *
+ * \param display Wayland display to which the socket should be added.
+ * \return The socket name if success. NULL if failed.
+ *
+ * This adds a Unix socket to Wayland display which can be used by clients to
+ * connect to Wayland display. The name of the socket is chosen automatically
+ * as the first available name in the sequence "wayland-0", "wayland-1",
+ * "wayland-2", ..., "wayland-32".
+ *
+ * The string returned by this function is owned by the library and should
+ * not be freed.
+ *
+ * \sa wl_display_add_socket
+ *
+ * \memberof wl_display
+ */
 WL_EXPORT const char *
 wl_display_add_socket_auto(struct wl_display *display)
 {
