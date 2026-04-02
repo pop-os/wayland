@@ -1696,6 +1696,75 @@ TEST(global_remove)
 }
 
 static void
+dispatch_single_read_events(struct wl_display *d)
+{
+	if (wl_display_prepare_read(d) < 0) {
+		return;
+	}
+
+	int ret = 0;
+	do {
+		ret = wl_display_flush(d);
+	} while (ret < 0 && (errno == EINTR || errno == EAGAIN));
+	assert(ret >= 0);
+
+	struct pollfd pfd[1];
+	pfd[0].fd = wl_display_get_fd(d);
+	pfd[0].events = POLLIN;
+
+	do {
+		ret = poll(pfd, 1, -1);
+	} while (ret < 0 && errno == EINTR);
+	assert(ret > 0);
+
+	wl_display_read_events(d);
+}
+
+static void
+dispatch_single_client(void)
+{
+	struct client *c = client_connect();
+
+	assert(wl_display_dispatch_pending_single(c->wl_display) == 0);
+
+	struct wl_registry *registry = wl_display_get_registry(c->wl_display);
+
+	dispatch_single_read_events(c->wl_display);
+
+	// [1815110.061] {Default Queue} wl_registry#3.global(1, "test", 1)
+	assert(wl_display_dispatch_pending_single(c->wl_display) == 1);
+
+	dispatch_single_read_events(c->wl_display);
+
+	// [1815110.067] {Default Queue} wl_registry#3.global(2, "wl_seat", 1)
+	assert(wl_display_dispatch_pending_single(c->wl_display) == 1);
+
+	// No more events
+	assert(wl_display_dispatch_pending_single(c->wl_display) == 0);
+
+	wl_registry_destroy(registry);
+
+	client_disconnect(c);
+}
+
+TEST(dispatch_single)
+{
+	struct display *d = display_create();
+
+	struct wl_global *global = wl_global_create(d->wl_display,
+						    &wl_seat_interface,
+						    1, d, bind_seat);
+
+	client_create_noarg(d, dispatch_single_client);
+
+	display_run(d);
+
+	wl_global_destroy(global);
+
+	display_destroy(d);
+}
+
+static void
 terminate_display(void *arg)
 {
 	struct wl_display *wl_display = arg;

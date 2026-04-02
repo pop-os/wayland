@@ -634,6 +634,49 @@ client_test_queue_dispatch_timeout(void)
 	exit(0);
 }
 
+/* Try to use a proxy with a destroyed queue as a factory for
+ * another proxy (either normal or wrapper). This should succeed
+ * although the new proxy may not be useful until a queue is attached.
+ * The following code is safe to perform in the context of the test, since
+ * we are not flushing the display write buffer, neither explicitly
+ * (wl_display_flush()) nor implicitly (we don't place enough data to
+ * fill the display buffer and cause an auto-flush). */
+static void
+client_test_queue_destroy_then_use_proxy_as_factory(void)
+{
+	struct wl_display *display;
+	struct wl_event_queue *queue;
+	struct wl_registry *registry, *registry_wrapper;
+	struct wl_proxy *proxy;
+
+	display = wl_display_connect(NULL);
+	assert(display);
+
+	/* Create registry with a queue that's immediately destroyed. */
+	queue = wl_display_create_queue(display);
+	assert(queue);
+	registry = wl_display_get_registry(display);
+	assert(registry);
+	wl_proxy_set_queue((struct wl_proxy *) registry, queue);
+	wl_event_queue_destroy(queue);
+
+	/* Scenario 1: Create a proxy using the registry (never flushed,
+	 * so details don't matter). */
+	proxy = wl_registry_bind(registry, 1000, &wl_output_interface, 1);
+	assert(proxy);
+
+	/* Scenario 2: Create a wrapper proxy using the registry. */
+	registry_wrapper = wl_proxy_create_wrapper(registry);
+	assert(registry_wrapper);
+
+	wl_proxy_wrapper_destroy((struct wl_proxy *) registry_wrapper);
+	wl_proxy_destroy(proxy);
+	wl_registry_destroy(registry);
+	wl_display_disconnect(display);
+
+	exit(0);
+}
+
 static void
 dummy_bind(struct wl_client *client,
 	   void *data, uint32_t version, uint32_t id)
@@ -792,6 +835,18 @@ TEST(queue_dispatch_timeout)
 	test_set_timeout(2);
 
 	client_create_noarg(d, client_test_queue_dispatch_timeout);
+	display_run(d);
+
+	display_destroy(d);
+}
+
+TEST(queue_destroy_then_use_proxy_as_factory)
+{
+	struct display *d = display_create();
+
+	test_set_timeout(2);
+
+	client_create_noarg(d, client_test_queue_destroy_then_use_proxy_as_factory);
 	display_run(d);
 
 	display_destroy(d);

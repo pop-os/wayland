@@ -92,8 +92,8 @@ get_socket_name(void)
 	static char retval[64];
 
 	gettimeofday(&tv, NULL);
-	snprintf(retval, sizeof retval, "wayland-test-%d-%ld%ld",
-		 getpid(), tv.tv_sec, tv.tv_usec);
+	snprintf(retval, sizeof retval, "wayland-test-%d-%lld%lld",
+		 (int) getpid(), (long long int) tv.tv_sec, (long long int) tv.tv_usec);
 
 	return retval;
 }
@@ -517,7 +517,7 @@ struct client *client_connect(void)
 	assert(c->wl_display && "Failed connecting to display");
 
 	/* create test_compositor proxy. Do it with temporary
-	 * registry so that client can define it's own listener later */
+	 * registry so that client can define its own listener later */
 	reg = wl_display_get_registry(c->wl_display);
 	assert(reg);
 	wl_registry_add_listener(reg, &registry_listener, c);

@@ -4,6 +4,7 @@
 <!ELEMENT interface (description?,(request|event|enum)+)>
   <!ATTLIST interface name CDATA #REQUIRED>
   <!ATTLIST interface version CDATA #REQUIRED>
+  <!ATTLIST interface frozen CDATA #IMPLIED>
 <!ELEMENT request (description?,arg*)>
   <!ATTLIST request name CDATA #REQUIRED>
   <!ATTLIST request type CDATA #IMPLIED>

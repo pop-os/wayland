@@ -121,6 +121,9 @@ wl_array_add(struct wl_array *array, size_t size)
 		alloc *= 2;
 
 	if (array->alloc < alloc) {
+		if (array->alloc == 0 && array->data != NULL)
+			wl_abort("data is non-NULL with zero alloc");
+
 		if (array->alloc > 0)
 			data = realloc(array->data, alloc);
 		else
