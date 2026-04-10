@@ -1,4 +1,4 @@
-wayland (1.25.0-1) UNRELEASED; urgency=medium
+wayland (1.25.0-1) experimental; urgency=medium
 
   * New upstream release
   * Build-Deps: switch from docbook to mdbook
@@ -12,7 +12,7 @@ wayland (1.25.0-1) UNRELEASED; urgency=medium
   * Update debian/copyright
   * salsa-ci: enable licenserecon
 
- -- Dylan Aïssi <daissi@debian.org>  Fri, 10 Apr 2026 16:14:49 +0200
+ -- Dylan Aïssi <daissi@debian.org>  Fri, 10 Apr 2026 16:15:37 +0200
 
 wayland (1.24.0-2) unstable; urgency=medium
 
