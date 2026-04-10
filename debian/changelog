@@ -9,6 +9,7 @@ wayland (1.25.0-1) UNRELEASED; urgency=medium
   * d/s/format: switch to 3.0 (quilt)
   * Drop useless quilt related part
   * Add debian/salsa-ci.yml
+  * Update debian/copyright
 
  -- Dylan Aïssi <daissi@debian.org>  Thu, 02 Apr 2026 17:48:17 +0200
 
