@@ -1,3 +1,9 @@
+wayland (1.26.0-1) UNRELEASED; urgency=medium
+
+  * New upstream release
+
+ -- Dylan Aïssi <daissi@debian.org>  Fri, 17 Jul 2026 17:24:09 +0200
+
 wayland (1.25.0-2) unstable; urgency=medium
 
   * Upload to unstable.
