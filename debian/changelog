@@ -2,6 +2,9 @@ wayland (1.26.0-1) UNRELEASED; urgency=medium
 
   * New upstream release
   * Update libwayland-server0 symbols file: add 3 new symbols
+  * Remove redundant fields:
+    - Priority: optional
+    - Rules-Requires-Root: no
 
  -- Dylan Aïssi <daissi@debian.org>  Fri, 17 Jul 2026 17:24:09 +0200
 
