@@ -1577,7 +1577,6 @@ queue_event(struct wl_display *display, int len)
 	const struct wl_message *message;
 	struct wl_event_queue *queue;
 	struct timespec tp;
-	unsigned int time;
 	int num_zombie_fds;
 
 	wl_connection_copy(display->connection, p, sizeof p);
@@ -1619,11 +1618,13 @@ queue_event(struct wl_display *display, int len)
 
 		if (debug_client) {
 			clock_gettime(CLOCK_REALTIME, &tp);
-			time = (tp.tv_sec * 1000000L) + (tp.tv_nsec / 1000);
-			fprintf(stderr, "%s[%7u.%03u] %sdiscarded %s[%s]%s#%u%s.[event %d]%s"
+			fprintf(stderr, "%s[%02u:%02u:%02u.%06u] %sdiscarded %s[%s]%s#%u%s.[event %d]%s"
 				"(%d fd, %d byte)\n",
 				debug_color ? WL_DEBUG_COLOR_GREEN : "",
-				time / 1000, time % 1000,
+				(unsigned) ((tp.tv_sec / 3600) % 24),
+				(unsigned) ((tp.tv_sec / 60) % 60),
+				(unsigned) (tp.tv_sec % 60),
+				(unsigned) (tp.tv_nsec / 1000),
 				debug_color ? WL_DEBUG_COLOR_RED : "",
 				debug_color ? WL_DEBUG_COLOR_BLUE : "",
 				zombie ? "zombie" : "unknown",

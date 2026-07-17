@@ -115,15 +115,29 @@ struct wl_display {
 	size_t max_buffer_size;
 };
 
+struct wl_registry {
+	struct wl_display *display;
+	struct wl_list offer_list;
+};
+
 struct wl_global {
 	struct wl_display *display;
 	const struct wl_interface *interface;
+	struct wl_list offer_list;
 	uint32_t name;
 	uint32_t version;
 	void *data;
 	wl_global_bind_func_t bind;
+	wl_global_withdrawn_func_t withdrawn;
 	struct wl_list link;
-	bool removed;
+	bool unpublished;
+};
+
+struct wl_global_offer {
+	struct wl_list global_link; /**< in struct wl_global::offer_list */
+	struct wl_list registry_link; /**< in struct wl_registry::offer_list */
+	struct wl_resource *registry_resource;
+	struct wl_global *global;
 };
 
 struct wl_resource {
@@ -1048,7 +1062,8 @@ registry_bind(struct wl_client *client,
 	      const char *interface, uint32_t version, uint32_t id)
 {
 	struct wl_global *global;
-	struct wl_display *display = resource->data;
+	struct wl_registry *registry = resource->data;
+	struct wl_display *display = registry->display;
 
 	wl_list_for_each(global, &display->global_list, link)
 		if (global->name == name)
@@ -1100,9 +1115,76 @@ display_sync(struct wl_client *client,
 }
 
 static void
-unbind_resource(struct wl_resource *resource)
+wl_global_publish(struct wl_global *global,
+		  struct wl_resource *registry_resource)
 {
+	struct wl_global_offer *offer;
+	struct wl_registry *registry = registry_resource->data;
+
+	offer = zalloc(sizeof *offer);
+	if (offer == NULL) {
+		wl_resource_post_no_memory(registry_resource);
+		return;
+	}
+
+	offer->registry_resource = registry_resource;
+	offer->global = global;
+	wl_list_insert(&global->offer_list, &offer->global_link);
+	wl_list_insert(&registry->offer_list, &offer->registry_link);
+
+	wl_resource_post_event(registry_resource,
+			       WL_REGISTRY_GLOBAL,
+			       global->name,
+			       global->interface->name,
+			       global->version);
+}
+
+static void
+wl_global_offer_destroy(struct wl_global_offer *offer)
+{
+	wl_list_remove(&offer->global_link);
+	wl_list_remove(&offer->registry_link);
+	free(offer);
+}
+
+static void
+wl_global_offer_done(struct wl_global_offer *offer)
+{
+	struct wl_global *global = offer->global;
+
+	wl_global_offer_destroy(offer);
+
+	if (global->unpublished && global->withdrawn && wl_list_empty(&global->offer_list))
+		global->withdrawn(global);
+}
+
+static struct wl_global_offer *
+wl_registry_find_offer(struct wl_registry *registry,
+		       uint32_t global_name)
+{
+	struct wl_global_offer *offer;
+
+	wl_list_for_each(offer, &registry->offer_list, registry_link) {
+		if (offer->global->name == global_name)
+			return offer;
+	}
+
+	return NULL;
+}
+
+static void
+unbind_registry_resource(struct wl_resource *resource)
+{
+	struct wl_registry *registry = resource->data;
+	struct wl_global_offer *offer;
+
+	while (!wl_list_empty(&registry->offer_list)) {
+		offer = wl_container_of(registry->offer_list.next, offer, registry_link);
+		wl_global_offer_done(offer);
+	}
+
 	wl_list_remove(&resource->link);
+	free(registry);
 }
 
 static void
@@ -1112,6 +1194,7 @@ display_get_registry(struct wl_client *client,
 	struct wl_display *display = resource->data;
 	struct wl_resource *registry_resource;
 	struct wl_global *global;
+	struct wl_registry *registry;
 
 	registry_resource =
 		wl_resource_create(client, &wl_registry_interface, 1, id);
@@ -1120,20 +1203,25 @@ display_get_registry(struct wl_client *client,
 		return;
 	}
 
+	registry = zalloc(sizeof *registry);
+	if (registry == NULL) {
+		wl_client_post_no_memory(client);
+		return;
+	}
+
+	registry->display = display;
+	wl_list_init(&registry->offer_list);
+
 	wl_resource_set_implementation(registry_resource,
 				       &registry_interface,
-				       display, unbind_resource);
+				       registry, unbind_registry_resource);
 
 	wl_list_insert(&display->registry_resource_list,
 		       &registry_resource->link);
 
 	wl_list_for_each(global, &display->global_list, link)
-		if (wl_global_is_visible(client, global) && !global->removed)
-			wl_resource_post_event(registry_resource,
-					       WL_REGISTRY_GLOBAL,
-					       global->name,
-					       global->interface->name,
-					       global->version);
+		if (wl_global_is_visible(client, global) && !global->unpublished)
+			wl_global_publish(global, registry_resource);
 }
 
 static const struct wl_display_interface display_interface = {
@@ -1270,6 +1358,7 @@ wl_socket_destroy(struct wl_socket *s)
 	if (s->fd_lock >= 0)
 		close(s->fd_lock);
 
+	wl_list_remove(&s->link);
 	free(s);
 }
 
@@ -1284,6 +1373,7 @@ wl_socket_alloc(void)
 
 	s->fd = -1;
 	s->fd_lock = -1;
+	wl_list_init(&s->link);
 
 	return s;
 }
@@ -1399,18 +1489,28 @@ wl_global_create(struct wl_display *display,
 	global->version = version;
 	global->data = data;
 	global->bind = bind;
-	global->removed = false;
+	global->withdrawn = NULL;
+	global->unpublished = false;
 	wl_list_insert(display->global_list.prev, &global->link);
+	wl_list_init(&global->offer_list);
 
 	wl_list_for_each(resource, &display->registry_resource_list, link)
 		if (wl_global_is_visible(resource->client, global))
-			wl_resource_post_event(resource,
-					       WL_REGISTRY_GLOBAL,
-					       global->name,
-					       global->interface->name,
-					       global->version);
+			wl_global_publish(global, resource);
 
 	return global;
+}
+
+static void
+wl_global_unpublish(struct wl_global *global)
+{
+	struct wl_global_offer *offer;
+
+	wl_list_for_each(offer, &global->offer_list, global_link)
+		wl_resource_post_event(offer->registry_resource,
+				       WL_REGISTRY_GLOBAL_REMOVE, global->name);
+
+	global->unpublished = true;
 }
 
 /** Remove the global
@@ -1420,45 +1520,93 @@ wl_global_create(struct wl_display *display,
  * Broadcast a global remove event to all clients without destroying the
  * global. This function can only be called once per global.
  *
- * wl_global_destroy() removes the global and immediately destroys it. On
- * the other end, this function only removes the global, allowing clients
- * that have not yet received the global remove event to continue to bind to
- * it.
- *
  * This can be used by compositors to mitigate clients being disconnected
- * because a global has been added and removed too quickly. Compositors can call
- * wl_global_remove(), then wait an implementation-defined amount of time, then
- * call wl_global_destroy(). Note that the destruction of a global is still
- * racy, since clients have no way to acknowledge that they received the remove
- * event.
+ * because a global has been added and removed too quickly.
  *
+ * Due to the Wayland protocol being asynchronous, the wl_global objects
+ * cannot be destroyed immediately. For example, if a wl_global is destroyed
+ * and a client attempts to bind that global around same time, it can
+ * result in a protocol error due to an unknown global name in the bind request.
+ *
+ * In order to avoid crashing clients, the compositor should destroy the
+ * wl_global once it is guaranteed that no more bind requests will come.
+ *
+ * The recommended way to destroy globals is as follows:
+ *
+ * - the compositor registers a callback using the wl_global_set_withdrawn_listener()
+ *   function, which will be called when it is safe to call wl_global_destroy();
+ * - the compositor calls wl_global_remove(). This will broadcast
+ *   wl_registry.global_remove events to all clients;
+ * - upon receiving a wl_registry.global_remove event, a client must
+ *   reply to it by calling the wl_fixes.ack_global_remove() request. The
+ *   client must call the wl_fixes.ack_global_remove() request even if it
+ *   did not bind the global;
+ * - the compositor will call the wl_fixes_handle_ack_global_remove() function when
+ *   it receives the wl_fixes.ack_global_remove() request from the client;
+ * - after all clients have acknowledged the global removal, the "withdrawn"
+ *   callback will be called to notify the compositor that the
+ *   wl_global_destroy() function can be called now.
+ *
+ * \sa wl_global_set_withdrawn_listener
+ * \sa wl_fixes_handle_ack_global_remove
  * \since 1.17.90
  */
 WL_EXPORT void
 wl_global_remove(struct wl_global *global)
 {
-	struct wl_display *display = global->display;
-	struct wl_resource *resource;
-
-	if (global->removed)
+	if (global->unpublished)
 		wl_abort("wl_global_remove: called twice on the same "
 			 "global '%s#%"PRIu32"'", global->interface->name,
 			 global->name);
 
-	wl_list_for_each(resource, &display->registry_resource_list, link)
-		if (wl_global_is_visible(resource->client, global))
-			wl_resource_post_event(resource, WL_REGISTRY_GLOBAL_REMOVE,
-					       global->name);
+	wl_global_unpublish(global);
 
-	global->removed = true;
+	if (global->withdrawn && wl_list_empty(&global->offer_list))
+		global->withdrawn(global);
+}
+
+/** Set the withdrawn callback.
+ *
+ * \param global The Wayland global.
+ * \param func The withdrawn callback.
+ *
+ * The withdrawn callback notifies the compositor that the global can be
+ * safely destroyed by calling wl_global_destroy(). The callback will be called
+ * in the following cases:
+ *
+ * - immediately by wl_global_remove(), if there are no registeries where the
+ *   global was announced;
+ * - or some time later after wl_global_remove(), due to either receiving the
+ *   last wl_fixes_handle_ack_global_remove() or getting the last wl_registry
+ *   where the global was announced destroyed.
+ *
+ * The withdrawn callback will never be called without prior wl_global_remove().
+ *
+ * \sa wl_fixes_handle_ack_global_remove
+ * \since 1.26
+ */
+WL_EXPORT void
+wl_global_set_withdrawn_listener(struct wl_global *global,
+				 wl_global_withdrawn_func_t func)
+{
+	global->withdrawn = func;
 }
 
 WL_EXPORT void
 wl_global_destroy(struct wl_global *global)
 {
-	if (!global->removed)
-		wl_global_remove(global);
+	struct wl_global_offer *offer;
+
+	if (!global->unpublished)
+		wl_global_unpublish(global);
+
 	wl_list_remove(&global->link);
+
+	while (!wl_list_empty(&global->offer_list)) {
+		offer = wl_container_of(global->offer_list.next, offer, global_link);
+		wl_global_offer_destroy(offer);
+	}
+
 	free(global);
 }
 
@@ -1894,7 +2042,8 @@ wl_display_add_socket_auto(struct wl_display *display)
  * with both bind() and listen() already called.
  *
  * On success, the socket fd ownership is transferred to libwayland:
- * libwayland will close the socket when the display is destroyed.
+ * libwayland will close the socket when the display is destroyed or when
+ * wl_display_remove_socket_fd() is called.
  *
  * \memberof wl_display
  */
@@ -1927,6 +2076,37 @@ wl_display_add_socket_fd(struct wl_display *display, int sock_fd)
 
 	wl_list_insert(display->socket_list.prev, &s->link);
 
+	return 0;
+}
+
+/** Remove a socket fd from the Wayland display.
+ *
+ * \param display Wayland display from which the socket should be removed.
+ * \param sock_fd The socket file descriptor to be removed.
+ * \return 0 if success. -1 if failed.
+ *
+ * Remove a socket fd previously added via wl_display_add_socket_fd().
+ *
+ * \memberof wl_display
+ * \since 1.25.90
+ */
+WL_EXPORT int
+wl_display_remove_socket_fd(struct wl_display *display, int sock_fd)
+{
+	struct wl_socket *s;
+	bool found;
+
+	found = false;
+	wl_list_for_each(s, &display->socket_list, link) {
+		if (s->fd == sock_fd) {
+			found = true;
+			break;
+		}
+	}
+	if (!found)
+		return -1;
+
+	wl_socket_destroy(s);
 	return 0;
 }
 
@@ -2707,6 +2887,47 @@ WL_EXPORT void
 wl_display_remove_global(struct wl_display *display, struct wl_global *global)
 {
 	wl_global_destroy(global);
+}
+
+/** Acknowledge global removal by a client
+ *
+ * \param fixes_resource The wl_fixes resource.
+ * \param registry_resource The wl_registry resource.
+ * \param global_name The unique id of the global.
+ *
+ * The compositor should call this function from the wl_fixes.ack_global_remove
+ * request implementation.
+ *
+ * libwayland-server automatically takes care of the implied ack-remove due
+ * to client disconnection or explicit wl_resource_destroy() of the wl_registry
+ * resource.
+ *
+ * \sa wl_global_remove
+ * \sa wl_global_set_withdrawn_listener
+ * \since 1.26
+ */
+WL_EXPORT void
+wl_fixes_handle_ack_global_remove(struct wl_resource *fixes_resource,
+				  struct wl_resource *registry_resource,
+				  uint32_t global_name)
+{
+	struct wl_global_offer *offer;
+	struct wl_registry *registry = registry_resource->data;
+
+	offer = wl_registry_find_offer(registry, global_name);
+	if (!offer) {
+		wl_resource_post_error(fixes_resource, WL_FIXES_ERROR_INVALID_ACK_REMOVE,
+				       "the given registry did not announce global %u", global_name);
+		return;
+	}
+
+	if (!offer->global->unpublished) {
+		wl_resource_post_error(fixes_resource, WL_FIXES_ERROR_INVALID_ACK_REMOVE,
+				       "global %u is not removed", global_name);
+		return;
+	}
+
+	wl_global_offer_done(offer);
 }
 
 /** \endcond */

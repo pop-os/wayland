@@ -424,10 +424,12 @@ for_each_helper(struct wl_array *entries, wl_iterator_func_t func, void *data)
 	union map_entry entry, *start;
 	size_t count;
 
-	start = (union map_entry *) entries->data;
-	count = entries->size / sizeof(union map_entry);
+	for (size_t idx = 0; ; idx++) {
+		count = entries->size / sizeof(union map_entry);
+		if (idx >= count)
+			break;
 
-	for (size_t idx = 0; idx < count; idx++) {
+		start = (union map_entry *) entries->data;
 		entry = start[idx];
 		if (entry.data && !map_entry_is_free(entry)) {
 			ret = func(map_entry_get_data(entry), data, map_entry_get_flags(entry));

@@ -189,7 +189,6 @@ struct message {
 	char *uppercase_name;
 	struct wl_list arg_list;
 	struct wl_list link;
-	int arg_count;
 	int new_id_count;
 	int type_index;
 	int all_null;
@@ -890,7 +889,6 @@ start_element(void *data, const char *element_name, const char **atts)
 			arg->summary = xstrdup(summary);
 
 		wl_list_insert(ctx->message->arg_list.prev, &arg->link);
-		ctx->message->arg_count++;
 	} else if (strcmp(element_name, "enum") == 0) {
 		if (name == NULL)
 			fail(&ctx->loc, "no enum name given");
@@ -1224,7 +1222,6 @@ emit_stubs(struct wl_list *message_list, struct interface *interface)
 		     "interface '%s' has method named destroy "
 		     "but no destructor",
 		     interface->name);
-		exit(EXIT_FAILURE);
 	}
 
 	if (!has_destroy && strcmp(interface->name, "wl_display") != 0) {
@@ -1630,6 +1627,10 @@ emit_types_forward_declarations(struct protocol *protocol,
 		m->all_null = 1;
 		wl_list_for_each(a, &m->arg_list, link) {
 			length++;
+			if (a->type == NEW_ID && !a->interface_name)
+				// adds implicit string and uint arguments
+				length += 2;
+
 			switch (a->type) {
 			case NEW_ID:
 			case OBJECT:
@@ -1867,9 +1868,15 @@ emit_types(struct protocol *protocol, struct wl_list *message_list)
 
 		m->type_index =
 			protocol->null_run_length + protocol->type_index;
-		protocol->type_index += m->arg_count;
 
 		wl_list_for_each(a, &m->arg_list, link) {
+			protocol->type_index++;
+			if (a->type == NEW_ID && !a->interface_name) {
+				// adds implicit string and uint arguments
+				printf("\tNULL,\n\tNULL,\n");
+				protocol->type_index += 2;
+			}
+
 			switch (a->type) {
 			case NEW_ID:
 			case OBJECT:

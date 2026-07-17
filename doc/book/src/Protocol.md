@@ -170,9 +170,9 @@ mechanism to request a different version.
 
 ## Connect Time
 
-There is no fixed connection setup information, the server emits multiple events
-at connect time, to indicate the presence and properties of global objects:
-outputs, compositor, input devices.
+When a client connects, the server sends no data but silently provides access to
+the singleton `wl_display` under object ID 1. Global objects are managed through
+an instance of [wl_registry](#registry).
 
 ## Security and Authentication
 
@@ -187,19 +187,50 @@ outputs, compositor, input devices.
 
 Each object has a unique ID. The IDs are allocated by the entity creating the
 object (either client or server). IDs allocated by the client are in the range
-[1, 0xfeffffff] while IDs allocated by the server are in the range [0xff000000,
-0xffffffff]. The 0 ID is reserved to represent a null or non-existent object.
-For efficiency purposes, the IDs are densely packed in the sense that the ID N
-will not be used until N-1 has been used. This ordering is not merely a
-guideline, but a strict requirement, and there are implementations of the
-protocol that rigorously enforce this rule, including the ubiquitous libwayland.
+[2, 0xfeffffff] while IDs allocated by the server are in the range [0xff000000,
+0xffffffff]. The 0 ID is reserved to represent a null or non-existent object and
+ID 1 is automatically assigned to the singleton `wl_display` instance when a
+client connects. For efficiency purposes, the IDs are densely packed in the
+sense that the ID N will not be used until N-1 has been used. This ordering is
+not merely a guideline, but a strict requirement, and there are implementations
+of the protocol that rigorously enforce this rule, including the ubiquitous
+libwayland.
+
+## Display
+
+The display is a singleton global object and always has the ID 1. Clients often
+call its `get_registry` method after connecting to the server to obtain the
+object registry.
+
+See [wl_display](https://wayland.freedesktop.org/docs/html/apa.html#protocol-spec-wl_display)
+for the protocol description.
+
+## Registry
+
+The registry is a global object, instantiated using
+[`wl_display.get_registry`](https://wayland.freedesktop.org/docs/html/apa.html#protocol-spec-wl_display-request-get_registry),
+that acts as the interface to Wayland's object system between client and server:
+it initially informs the client of all globals available on the server,
+announces to the client whenever objects are added to or removed from the
+server, and allows the client to bind to the objects to interact with them.
+
+After instantiating a new registry, the server advertises all available objects
+to the client using
+[`wl_registry.global`](https://wayland.freedesktop.org/docs/html/apa.html#protocol-spec-wl_registry-event-global).
+Thereafter, whenever a new object is added, the server advertises it to its
+clients using `wl_registry.global`, and whenever an object is removed, this fact
+is advertised using
+[`wl_registry.global_remove`](https://wayland.freedesktop.org/docs/html/apa.html#protocol-spec-wl_registry-event-global_remove).
+
+See [wl_registry](https://wayland.freedesktop.org/docs/html/apa.html#protocol-spec-wl_registry)
+for the protocol description.
 
 ## Compositor
 
-The compositor is a global object, advertised at connect time.
+The compositor is a global object, advertised through the registry.
 
-See [wl_compositor](https://wayland.app/protocols/wayland#wl_compositor) for the
-protocol description.
+See [wl_compositor](https://wayland.freedesktop.org/docs/html/apa.html#protocol-spec-wl_compositor)
+for the protocol description.
 
 ## Surfaces
 
@@ -275,8 +306,8 @@ client is likely just broken.
 
 ## Output
 
-An output is a global object, advertised at connect time or as it comes and
-goes.
+An output is a global object, advertised through the registry. Outputs may be
+added or removed during the lifetime of the server.
 
 See [wl_output](https://wayland.app/protocols/wayland#wl_output) for the
 protocol description.
