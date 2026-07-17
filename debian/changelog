@@ -5,6 +5,7 @@ wayland (1.26.0-1) UNRELEASED; urgency=medium
   * Remove redundant fields:
     - Priority: optional
     - Rules-Requires-Root: no
+  * Standards-Version: 4.7.4 (no changes required)
 
  -- Dylan Aïssi <daissi@debian.org>  Fri, 17 Jul 2026 17:24:09 +0200
 

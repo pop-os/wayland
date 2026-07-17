@@ -19,7 +19,7 @@ Build-Depends-Indep:
  xmlto,
  xsltproc,
  mdbook,
-Standards-Version: 4.7.2
+Standards-Version: 4.7.4
 Vcs-Git: https://salsa.debian.org/xorg-team/wayland/wayland.git
 Vcs-Browser: https://salsa.debian.org/xorg-team/wayland/wayland
 Homepage: https://wayland.freedesktop.org/
