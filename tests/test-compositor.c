@@ -491,14 +491,15 @@ registry_handle_globals(void *data, struct wl_registry *registry,
 {
 	struct client *c = data;
 
-	if (strcmp(intf, "test") != 0)
-		return;
+	if (strcmp(intf, "test") == 0) {
+		c->tc = wl_registry_bind(registry, id, &test_compositor_interface, ver);
+		assert(c->tc && "Failed binding to registry");
 
-	c->tc = wl_registry_bind(registry, id, &test_compositor_interface, ver);
-	assert(c->tc && "Failed binding to registry");
-
-	wl_proxy_add_listener((struct wl_proxy *) c->tc,
-			      (void *) &tc_listener, c);
+		wl_proxy_add_listener((struct wl_proxy *) c->tc,
+				      (void *) &tc_listener, c);
+	} else if (strcmp(intf, wl_fixes_interface.name) == 0) {
+		c->wl_fixes = wl_registry_bind(registry, id, &wl_fixes_interface, 2);
+	}
 }
 
 static const struct wl_registry_listener registry_listener =
@@ -524,6 +525,9 @@ struct client *client_connect(void)
 	wl_display_roundtrip(c->wl_display);
 	assert(c->tc);
 
+	if (c->wl_fixes) {
+		wl_fixes_destroy_registry(c->wl_fixes, reg);
+	}
 	wl_registry_destroy(reg);
 
 	return c;
@@ -555,6 +559,10 @@ client_disconnect(struct client *c)
 {
 	/* check for errors */
 	check_error(c->wl_display);
+
+	if (c->wl_fixes) {
+		wl_fixes_destroy(c->wl_fixes);
+	}
 
 	wl_proxy_destroy((struct wl_proxy *) c->tc);
 	wl_display_disconnect(c->wl_display);

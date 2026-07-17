@@ -66,6 +66,7 @@ struct display {
  * filled. */
 struct client {
 	struct wl_display *wl_display;
+	struct wl_fixes *wl_fixes;
 	struct test_compositor *tc;
 
 	atomic_bool display_stopped;

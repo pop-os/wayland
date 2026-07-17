@@ -305,11 +305,11 @@ armv7-release-debian-build:
 .os-freebsd:
   variables:
     BUILD_OS: freebsd
-    FDO_DISTRIBUTION_VERSION: "14.3"
+    FDO_DISTRIBUTION_VERSION: "14.4"
     FDO_DISTRIBUTION_PACKAGES: 'libxslt meson ninja pkgconf expat libffi libepoll-shim libxml2'
     # bump this tag every time you change something which requires rebuilding the
     # base image
-    FDO_DISTRIBUTION_TAG: "2025-07-20.0"
+    FDO_DISTRIBUTION_TAG: "2026-03-10.0"
     # Don't build documentation since installing the required tools massively
     # increases the VM image (and therefore container) size.
     MESON_ARGS: "--fatal-meson-warnings -Dwerror=true -Ddocumentation=false"
