@@ -1,4 +1,6 @@
-version=4
-opts="searchmode=plain,pgpsigurlmangle=s/$/.sig/" \
-https://gitlab.freedesktop.org/api/v4/projects/wayland%2Fwayland/releases \
- https://gitlab.freedesktop.org/wayland/wayland/-/releases/?\d[\d.]+/downloads/wayland-@ANY_VERSION@\.tar\.xz
+Version: 5
+
+Source: https://gitlab.freedesktop.org/api/v4/projects/wayland%2Fwayland/releases
+Matching-Pattern: https://gitlab.freedesktop.org/wayland/wayland/-/releases/?\d[\d.]+/downloads/wayland-@ANY_VERSION@\.tar\.xz
+Pgpsigurlmangle: s/$/.sig/
+Searchmode: plain

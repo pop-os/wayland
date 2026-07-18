@@ -6,6 +6,7 @@ wayland (1.26.0-1) UNRELEASED; urgency=medium
     - Priority: optional
     - Rules-Requires-Root: no
   * Standards-Version: 4.7.4 (no changes required)
+  * Convert d/watch to version 5
 
  -- Dylan Aïssi <daissi@debian.org>  Fri, 17 Jul 2026 17:24:09 +0200
 
