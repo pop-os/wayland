@@ -1,4 +1,4 @@
-wayland (1.26.0-1) UNRELEASED; urgency=medium
+wayland (1.26.0-1) unstable; urgency=medium
 
   * New upstream release
   * Update libwayland-server0 symbols file: add 3 new symbols
@@ -8,7 +8,7 @@ wayland (1.26.0-1) UNRELEASED; urgency=medium
   * Standards-Version: 4.7.4 (no changes required)
   * Convert d/watch to version 5
 
- -- Dylan Aïssi <daissi@debian.org>  Fri, 17 Jul 2026 17:24:09 +0200
+ -- Dylan Aïssi <daissi@debian.org>  Tue, 21 Jul 2026 15:02:19 +0200
 
 wayland (1.25.0-2) unstable; urgency=medium
 
