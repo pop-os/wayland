@@ -1,3 +1,9 @@
+wayland (1.26.0-1pop1) resolute; urgency=medium
+
+  * Backport
+
+ -- Michael Murphy <michael@mmurphy.dev>  Tue, 03 Nov 2026 17:48:28 +0100
+
 wayland (1.26.0-1) unstable; urgency=medium
 
   * New upstream release
