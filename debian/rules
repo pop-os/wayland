@@ -7,6 +7,9 @@ ifeq (,$(filter libwayland-doc,$(shell dh_listpackages)))
 configure_flags += -Ddocumentation=false
 endif
 
+override_dh_builddeb:
+	dh_builddeb -- -Zzstd -z3
+
 override_dh_auto_configure:
 	dh_auto_configure -- $(configure_flags)
 
