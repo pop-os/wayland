@@ -18,7 +18,7 @@ Build-Depends-Indep:
  graphviz,
  xmlto,
  xsltproc,
- mdbook,
+# mdbook is not available on 24.04
 Standards-Version: 4.7.4
 Vcs-Git: https://salsa.debian.org/xorg-team/wayland/wayland.git
 Vcs-Browser: https://salsa.debian.org/xorg-team/wayland/wayland
